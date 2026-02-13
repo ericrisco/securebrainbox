@@ -15,25 +15,70 @@ logger = logging.getLogger(__name__)
 
 @log_command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /start command - welcome message."""
+    """Handle /start command - welcome or bootstrap."""
+    from src.soul.bootstrap import get_bootstrap_manager, get_onboarding, OnboardingStep
+    from src.utils.llm import llm_client
+    
+    bootstrap = get_bootstrap_manager()
+    onboarding = get_onboarding()
+    
+    if bootstrap.needs_bootstrap():
+        # First run - generate identity and start onboarding
+        await update.message.reply_text("🚀 *First run detected!* Setting up...", parse_mode="Markdown")
+        
+        try:
+            # Generate unique identity
+            identity = await bootstrap.generate_identity(llm_client)
+            bootstrap.write_identity(identity)
+            
+            # Get welcome message
+            welcome = onboarding.get_message_for_step(
+                OnboardingStep.WELCOME,
+                identity["name"]
+            )
+            
+            # Start onboarding flow
+            onboarding.set_step(OnboardingStep.NAME)
+            bootstrap.mark_complete()
+            
+            await update.message.reply_text(welcome, parse_mode="Markdown")
+            
+        except Exception as e:
+            logger.error(f"Bootstrap failed: {e}")
+            # Fallback to normal welcome
+            await update.message.reply_text(
+                "❌ Setup failed. Please try /start again.",
+                parse_mode="Markdown"
+            )
+        return
+    
+    # Check if we're mid-onboarding
+    if not onboarding.is_complete():
+        step = onboarding.get_step()
+        bot_name = "Brain"  # Default
+        
+        try:
+            from src.agent.brain import agent
+            if agent.soul_context and agent.soul_context.identity:
+                bot_name = agent.soul_context.identity.get("name", "Brain")
+        except Exception:
+            pass
+        
+        message = onboarding.get_message_for_step(step, bot_name)
+        if message:
+            await update.message.reply_text(message, parse_mode="Markdown")
+            return
+    
+    # Normal welcome for returning users
     welcome_text = """
-🧠 *SecureBrainBox*
+🧠 *Welcome back!*
 
-Your private second brain that never forgets.
+How can I help you today?
 
-*What can I do?*
-📄 Send me documents (PDF, DOCX)
-🖼️ Send me images
-🎤 Send me voice messages
-🔗 Send me URLs
-💬 Ask me anything
-
-Everything is processed *100% locally*. Your data never leaves your machine.
-
-*Quick Start:*
-1. Send me some content to index
-2. Ask questions about it
-3. I'll find relevant info and answer
+📄 Send me content to index
+🔍 Ask questions about your knowledge
+💡 Use /ideas for insights
+🧠 Use /memory to see what I remember
 
 Type /help to see all commands.
     """

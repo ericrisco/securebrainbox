@@ -5,6 +5,13 @@ from src.soul.init import SoulInitializer
 from src.soul.memory import MemoryManager, get_memory_manager
 from src.soul.flush import MemoryFlusher, save_to_memory
 from src.soul.skills import SkillRegistry, SkillSelector, Skill, get_skill_registry
+from src.soul.bootstrap import (
+    BootstrapManager,
+    UserOnboarding,
+    OnboardingStep,
+    get_bootstrap_manager,
+    get_onboarding,
+)
 
 __all__ = [
     "SoulLoader",
@@ -18,4 +25,9 @@ __all__ = [
     "SkillSelector",
     "Skill",
     "get_skill_registry",
+    "BootstrapManager",
+    "UserOnboarding",
+    "OnboardingStep",
+    "get_bootstrap_manager",
+    "get_onboarding",
 ]
