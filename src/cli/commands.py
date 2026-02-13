@@ -1,12 +1,11 @@
 """Service control commands."""
 
+import contextlib
 import subprocess
 import sys
 
 import click
 from rich.console import Console
-from rich.table import Table
-
 
 console = Console()
 
@@ -14,11 +13,7 @@ console = Console()
 def get_compose_command() -> list[str]:
     """Get the appropriate docker compose command."""
     try:
-        result = subprocess.run(
-            ["docker", "compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=10)
         if result.returncode == 0:
             return ["docker", "compose"]
     except Exception:
@@ -75,7 +70,7 @@ def restart():
 def status(as_json: bool):
     """📊 Show service status."""
     compose_cmd = get_compose_command()
-    
+
     if as_json:
         subprocess.run(compose_cmd + ["ps", "--format", "json"])
     else:
@@ -90,19 +85,17 @@ def status(as_json: bool):
 @click.argument("service", required=False)
 def logs(follow: bool, lines: int, service: str | None):
     """📜 View service logs.
-    
+
     Optionally specify a service: app, ollama, weaviate
     """
     compose_cmd = get_compose_command()
     cmd = compose_cmd + ["logs", f"--tail={lines}"]
-    
+
     if follow:
         cmd.append("-f")
-    
+
     if service:
         cmd.append(service)
-    
-    try:
+
+    with contextlib.suppress(KeyboardInterrupt):
         subprocess.run(cmd)
-    except KeyboardInterrupt:
-        pass  # User cancelled with Ctrl+C

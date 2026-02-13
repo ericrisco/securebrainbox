@@ -1,21 +1,21 @@
 """Soul system for personality, identity, and memory."""
 
-from src.soul.loader import SoulLoader, SoulContext
-from src.soul.init import SoulInitializer
-from src.soul.memory import MemoryManager, get_memory_manager
-from src.soul.flush import MemoryFlusher, save_to_memory
-from src.soul.skills import SkillRegistry, SkillSelector, Skill, get_skill_registry
 from src.soul.bootstrap import (
     BootstrapManager,
-    UserOnboarding,
     OnboardingStep,
+    UserOnboarding,
     get_bootstrap_manager,
     get_onboarding,
 )
+from src.soul.flush import MemoryFlusher, save_to_memory
+from src.soul.init import SoulInitializer
+from src.soul.loader import SoulContext, SoulLoader
+from src.soul.memory import MemoryManager, get_memory_manager
+from src.soul.skills import Skill, SkillRegistry, SkillSelector, get_skill_registry
 
 __all__ = [
     "SoulLoader",
-    "SoulContext", 
+    "SoulContext",
     "SoulInitializer",
     "MemoryManager",
     "get_memory_manager",
