@@ -16,6 +16,8 @@ from src.bot.commands import (
     status_command,
     search_command,
     stats_command,
+    graph_command,
+    ideas_command,
 )
 from src.bot.handlers import (
     handle_text_message,
@@ -52,6 +54,8 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("search", search_command))
     app.add_handler(CommandHandler("stats", stats_command))
+    app.add_handler(CommandHandler("graph", graph_command))
+    app.add_handler(CommandHandler("ideas", ideas_command))
     
     # Message handlers
     # URLs in text messages

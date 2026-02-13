@@ -172,10 +172,14 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         stats_text = f"""
 📊 *Knowledge Base Statistics*
 
-🧩 *Total chunks:* {stats.get('total_chunks', 0)}
-📁 *Collection:* {stats.get('collection', 'Knowledge')}
+*Vector Store:*
+🧩 Indexed chunks: {stats.get('total_chunks', 0)}
 
-_Index more content by sending documents, URLs, or text._
+*Knowledge Graph:*
+🔗 Entities: {stats.get('entities', 0)}
+↔️ Relations: {stats.get('relations', 0)}
+
+_Index more content to build your second brain._
         """
         
         await update.message.reply_text(stats_text.strip(), parse_mode="Markdown")
@@ -184,6 +188,151 @@ _Index more content by sending documents, URLs, or text._
         logger.error(f"Stats error: {e}")
         await update.message.reply_text(
             "❌ Could not get statistics. Please check `/status`.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /graph command - explore entity connections."""
+    entity = " ".join(context.args) if context.args else ""
+    
+    if not entity:
+        await update.message.reply_text(
+            "🔗 *Knowledge Graph Explorer*\n\n"
+            "*Usage:* `/graph entity_name`\n\n"
+            "*Examples:*\n"
+            "• `/graph Python`\n"
+            "• `/graph OpenAI`\n"
+            "• `/graph machine learning`\n\n"
+            "_Explore connections between concepts in your knowledge base._",
+            parse_mode="Markdown"
+        )
+        return
+    
+    from telegram.constants import ChatAction
+    await update.message.chat.send_action(ChatAction.TYPING)
+    
+    try:
+        from src.agent.graph_queries import graph_helper
+        
+        result = await graph_helper.explore_entity(entity)
+        
+        if not result.get("found"):
+            await update.message.reply_text(
+                f"🔍 Entity `{entity}` not found in knowledge graph.\n\n"
+                "_Index more content to build your graph._",
+                parse_mode="Markdown"
+            )
+            return
+        
+        entity_info = result["entity"]
+        related = result.get("related", [])
+        docs = result.get("documents", [])
+        
+        # Format response
+        lines = [
+            f"🔗 *{entity_info['name']}*",
+            f"Type: {entity_info.get('type', 'unknown')}",
+        ]
+        
+        if entity_info.get("description"):
+            lines.append(f"_{entity_info['description']}_")
+        
+        lines.append("")
+        
+        if related:
+            lines.append(f"*Connected entities ({len(related)}):*")
+            visualization = graph_helper.format_graph_visualization(
+                entity_info["name"],
+                related
+            )
+            lines.append(f"```\n{visualization}\n```")
+        else:
+            lines.append("_No connections found._")
+        
+        if docs:
+            lines.append("")
+            lines.append(f"*Mentioned in {len(docs)} document(s)*")
+        
+        await update.message.reply_text(
+            "\n".join(lines),
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Graph error: {e}")
+        await update.message.reply_text(
+            "❌ Could not explore graph. Please check `/status`.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /ideas command - generate creative ideas from graph."""
+    topic = " ".join(context.args) if context.args else ""
+    
+    if not topic:
+        await update.message.reply_text(
+            "💡 *Crazy Ideas Generator*\n\n"
+            "*Usage:* `/ideas topic`\n\n"
+            "*Examples:*\n"
+            "• `/ideas machine learning`\n"
+            "• `/ideas productivity`\n"
+            "• `/ideas startup`\n\n"
+            "_I'll find unexpected connections in your knowledge and generate creative ideas!_",
+            parse_mode="Markdown"
+        )
+        return
+    
+    from telegram.constants import ChatAction
+    await update.message.chat.send_action(ChatAction.TYPING)
+    
+    try:
+        from src.agent.graph_queries import graph_helper
+        
+        await update.message.reply_text(
+            f"💡 Generating ideas about *{topic}*...\n"
+            "_Exploring your knowledge graph for unexpected connections._",
+            parse_mode="Markdown"
+        )
+        
+        ideas = await graph_helper.generate_ideas(topic, count=3)
+        
+        if not ideas:
+            await update.message.reply_text(
+                f"🤔 Couldn't find enough connections for *{topic}*.\n\n"
+                "_Try indexing more content to build richer connections._",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Format ideas
+        lines = [
+            f"💡 *Crazy Ideas about \"{topic}\"*",
+            ""
+        ]
+        
+        for i, idea in enumerate(ideas, 1):
+            path_str = " → ".join(idea.path)
+            lines.extend([
+                f"*{i}.* 🔗 `{path_str}`",
+                f"💭 _{idea.idea}_",
+            ])
+            if idea.explanation:
+                lines.append(f"📝 {idea.explanation}")
+            lines.append("")
+        
+        await update.message.reply_text(
+            "\n".join(lines),
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Ideas error: {e}")
+        await update.message.reply_text(
+            "❌ Could not generate ideas. Please check `/status`.",
             parse_mode="Markdown"
         )
 

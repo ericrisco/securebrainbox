@@ -35,6 +35,9 @@ dependencies = [
     # Vector Store
     "weaviate-client>=4.0.0",
     
+    # Graph Database
+    "kuzu>=0.4.0",
+    
     # File Processing
     "pypdf>=4.0.0",
     "pdfplumber>=0.10.0",
