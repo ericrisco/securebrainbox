@@ -2,6 +2,7 @@
 
 > Your private second brain that never forgets — 100% local, 100% yours.
 
+[![CI](https://github.com/ericrisco/securebrainbox/actions/workflows/ci.yml/badge.svg)](https://github.com/ericrisco/securebrainbox/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
@@ -23,6 +24,8 @@ SecureBrainBox is a **100% local** AI-powered knowledge management system for Te
 🔗 **Knowledge Graph** — Automatically extracts entities and relationships.
 
 💡 **Idea Generation** — Discovers unexpected connections in your knowledge.
+
+🎭 **Soul System** — Unique bot personality, daily memory logs, and modular skills.
 
 🤖 **Telegram Bot** — Simple chat interface from any device.
 
@@ -82,7 +85,7 @@ docker compose up -d
 
 | Command | Description |
 |---------|-------------|
-| `/start` | Welcome message |
+| `/start` | Welcome & onboarding |
 | `/help` | Show all commands |
 | `/status` | Check system health |
 | `/search <query>` | Search your knowledge |
@@ -90,6 +93,12 @@ docker compose up -d
 | `/graph <entity>` | Explore entity connections |
 | `/ideas <topic>` | Generate creative ideas |
 | `/export` | Export knowledge to file |
+| `/identity` | View bot personality |
+| `/user` | View your profile |
+| `/memory` | View long-term memory |
+| `/today` | View today's activity log |
+| `/remember <text>` | Save to memory |
+| `/skills` | List available skills |
 
 ### Indexing Content
 
