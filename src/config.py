@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # App
     log_level: str = "INFO"
     data_dir: str = "./data"
+    defaults_dir: str = "./defaults"
 
     @property
     def is_configured(self) -> bool:

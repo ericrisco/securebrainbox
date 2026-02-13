@@ -397,6 +397,85 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
 
+@log_command
+async def identity_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /identity command - show bot identity."""
+    try:
+        from src.agent.brain import agent
+        
+        if not agent.soul_context or not agent.soul_context.identity:
+            await update.message.reply_text(
+                "🧠 *Identity*\n\n_No identity configured yet._",
+                parse_mode="Markdown"
+            )
+            return
+        
+        identity = agent.soul_context.identity
+        
+        # Truncate for display
+        if len(identity) > 3000:
+            identity = identity[:3000] + "\n\n_...truncated_"
+        
+        await update.message.reply_text(
+            f"🧠 *Bot Identity*\n\n{identity}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Identity error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load identity.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /user command - show/edit user profile."""
+    from pathlib import Path
+    
+    try:
+        from src.agent.brain import agent
+        
+        args = " ".join(context.args) if context.args else ""
+        
+        if not args:
+            # Show current user profile
+            if not agent.soul_context or not agent.soul_context.user:
+                await update.message.reply_text(
+                    "👤 *User Profile*\n\n_No profile configured yet._\n\n"
+                    "Edit `USER.md` to add your profile.",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            user_content = agent.soul_context.user
+            
+            # Truncate for display
+            if len(user_content) > 3000:
+                user_content = user_content[:3000] + "\n\n_...truncated_"
+            
+            await update.message.reply_text(
+                f"👤 *User Profile*\n\n{user_content}",
+                parse_mode="Markdown"
+            )
+        else:
+            # Show help for editing
+            await update.message.reply_text(
+                "👤 *User Profile*\n\n"
+                "To update your profile, edit the `USER.md` file in your data directory.\n\n"
+                f"Location: `{settings.data_dir}/USER.md`",
+                parse_mode="Markdown"
+            )
+        
+    except Exception as e:
+        logger.error(f"User error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load user profile.",
+            parse_mode="Markdown"
+        )
+
+
 async def _check_ollama() -> bool:
     """Check if Ollama service is healthy."""
     try:
