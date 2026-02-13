@@ -545,6 +545,41 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 @log_command
+async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /skills command - list available skills."""
+    try:
+        from src.soul.skills import get_skill_registry
+        
+        registry = get_skill_registry()
+        skills = registry.list_skills()
+        
+        if not skills:
+            await update.message.reply_text(
+                "⚔️ *Skills*\n\n_No skills installed._\n\n"
+                "Add skills to `data/skills/` directory.\n"
+                "Each skill needs a `SKILL.md` file.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        lines = [f"⚔️ *Available Skills* ({len(skills)})\n"]
+        
+        for skill in skills:
+            desc = skill["description"][:100] + "..." if len(skill["description"]) > 100 else skill["description"]
+            lines.append(f"• **{skill['name']}**")
+            lines.append(f"  _{desc}_\n")
+        
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Skills error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load skills.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
 async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /remember command - save something to memory."""
     content = " ".join(context.args) if context.args else ""

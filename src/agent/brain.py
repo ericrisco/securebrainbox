@@ -25,6 +25,7 @@ from src.agent.prompts import (
 from src.agent.entities import entity_extractor
 from src.soul.loader import SoulLoader, SoulContext
 from src.soul.init import SoulInitializer
+from src.soul.skills import SkillRegistry, get_skill_registry
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,8 @@ class SecureBrain:
         self.initialized = False
         self.soul_context: Optional[SoulContext] = None
         self.soul_loader: Optional[SoulLoader] = None
+        self.skill_registry: Optional[SkillRegistry] = None
+        self.active_skill: Optional[str] = None
         logger.info("SecureBrain instance created")
     
     async def initialize(self) -> None:
@@ -98,6 +101,10 @@ class SecureBrain:
             # Load soul context
             self.soul_loader = SoulLoader(settings.data_dir)
             self.soul_context = await self.soul_loader.load()
+            
+            # Initialize skills
+            self.skill_registry = get_skill_registry(f"{settings.data_dir}/skills")
+            self.skill_registry.discover()
             
             # Connect to vector store
             await vector_store.connect()
@@ -360,7 +367,7 @@ class SecureBrain:
         """Build system prompt with soul context.
         
         Combines the base system prompt with loaded soul files
-        (personality, identity, user context, memory).
+        (personality, identity, user context, memory) and available skills.
         
         Returns:
             Complete system prompt string.
@@ -372,6 +379,11 @@ class SecureBrain:
         if self.soul_context and not self.soul_context.is_empty:
             soul_prompt = self.soul_context.to_system_prompt()
             prompt_parts.append(soul_prompt)
+        
+        # Add available skills
+        if self.skill_registry and self.skill_registry.skills:
+            skills_prompt = self.skill_registry.format_for_prompt()
+            prompt_parts.append(skills_prompt)
         
         return "\n\n---\n\n".join(prompt_parts)
     
