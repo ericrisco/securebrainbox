@@ -117,6 +117,7 @@ HELP_TEXT = """📚 *SecureBrainBox Commands*
 /memory - View long-term memory
 /today - View today's log
 /remember <text> - Save to memory
+/skills - List available skills
 
 *Indexing Content:*
 Send me any of these to index:
