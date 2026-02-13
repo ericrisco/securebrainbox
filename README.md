@@ -18,10 +18,38 @@
 ### Prerequisites
 
 - Docker & Docker Compose
+- Python 3.11+
 - Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
 - ~8GB RAM recommended
 
-### Installation
+### One-Line Install
+
+```bash
+pip install securebrainbox
+sbb install
+```
+
+That's it! The wizard will guide you through:
+1. ✅ Docker check
+2. 🤖 Telegram bot setup  
+3. ⚙️ Configuration
+4. 🚀 Start services
+5. 📦 Download AI models
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `sbb install` | Run setup wizard |
+| `sbb start` | Start the bot |
+| `sbb stop` | Stop all services |
+| `sbb restart` | Restart services |
+| `sbb status` | Check service status |
+| `sbb logs -f` | View live logs |
+| `sbb config show` | Show configuration |
+| `sbb config token <TOKEN>` | Update bot token |
+
+### Manual Installation
 
 ```bash
 # Clone the repository
@@ -38,9 +66,6 @@ docker-compose up -d
 # Initialize models (first run only, ~4GB download)
 docker-compose exec ollama ollama pull gemma3
 docker-compose exec ollama ollama pull nomic-embed-text
-
-# Check logs
-docker-compose logs -f app
 ```
 
 ### Usage
