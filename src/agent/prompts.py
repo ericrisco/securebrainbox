@@ -106,6 +106,10 @@ HELP_TEXT = """📚 *SecureBrainBox Commands*
 /search <query> - Search your knowledge
 /stats - Show knowledge base statistics
 
+*Knowledge Graph:*
+/graph <entity> - Explore entity connections
+/ideas <topic> - Generate creative ideas
+
 *Indexing Content:*
 Send me any of these to index:
 • 📄 Documents (PDF, DOCX, TXT)
@@ -117,7 +121,8 @@ Send me any of these to index:
 *Tips:*
 • Just send content to index it automatically
 • Ask questions naturally to search your knowledge
-• Use /status to check if services are running
+• Use /graph to explore connections between concepts
+• Use /ideas to get creative suggestions from your knowledge
 """
 
 # Ideas generation prompt

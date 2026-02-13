@@ -6,12 +6,14 @@ generation using RAG (Retrieval-Augmented Generation).
 """
 
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
 from src.config import settings
 from src.storage.vectors import vector_store
+from src.storage.graph import knowledge_graph
 from src.utils.llm import llm_client
 from src.utils.chunking import text_chunker
 from src.agent.prompts import (
@@ -20,6 +22,7 @@ from src.agent.prompts import (
     NO_CONTEXT_PROMPT,
     INDEXING_CONFIRMATION,
 )
+from src.agent.entities import entity_extractor
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,9 @@ class SecureBrain:
         try:
             # Connect to vector store
             await vector_store.connect()
+            
+            # Connect to knowledge graph
+            knowledge_graph.connect()
             
             self.initialized = True
             logger.info("SecureBrain initialized successfully")
@@ -206,6 +212,10 @@ class SecureBrain:
             )
             
             logger.info(f"Indexed {len(chunks)} chunks from {source}")
+            
+            # Extract entities and add to knowledge graph
+            await self._extract_and_add_entities(text, source, source_type)
+            
             return len(chunks)
             
         except Exception as e:
@@ -250,6 +260,64 @@ class SecureBrain:
             for r in results
         ]
     
+    async def _extract_and_add_entities(
+        self,
+        text: str,
+        source: str,
+        source_type: str
+    ) -> None:
+        """Extract entities from text and add to knowledge graph.
+        
+        Args:
+            text: Text to extract entities from.
+            source: Source identifier.
+            source_type: Type of content.
+        """
+        try:
+            # Extract entities using LLM
+            result = await entity_extractor.extract(text)
+            
+            if result.error:
+                logger.warning(f"Entity extraction failed: {result.error}")
+                return
+            
+            if not result.entities:
+                logger.debug(f"No entities found in {source}")
+                return
+            
+            # Add document node
+            knowledge_graph.add_document(
+                source=source,
+                source_type=source_type,
+                timestamp=int(time.time())
+            )
+            
+            # Add entities and mentions
+            for entity in result.entities:
+                knowledge_graph.add_entity(
+                    name=entity.name,
+                    entity_type=entity.type,
+                    description=entity.description,
+                    source=source
+                )
+                knowledge_graph.add_mention(source, entity.name)
+            
+            # Add relations between entities
+            for rel in result.relations:
+                knowledge_graph.add_relation(
+                    from_entity=rel.from_entity,
+                    to_entity=rel.to_entity,
+                    relation=rel.relation
+                )
+            
+            logger.info(
+                f"Added {len(result.entities)} entities and "
+                f"{len(result.relations)} relations from {source}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error extracting entities: {e}")
+    
     async def get_stats(self) -> dict:
         """Get knowledge base statistics.
         
@@ -264,6 +332,8 @@ class SecureBrain:
             return {
                 "total_chunks": stats.get("total_chunks", 0),
                 "collection": stats.get("collection", "Knowledge"),
+                "entities": knowledge_graph.get_entity_count(),
+                "relations": knowledge_graph.get_relation_count(),
             }
         except Exception as e:
             logger.error(f"Error getting stats: {e}")
