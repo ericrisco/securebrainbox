@@ -6,9 +6,9 @@ import httpx
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from src.config import settings
-from src.bot.middleware import log_command
 from src.agent.prompts import HELP_TEXT
+from src.bot.middleware import log_command
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,33 +16,33 @@ logger = logging.getLogger(__name__)
 @log_command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command - welcome or bootstrap."""
-    from src.soul.bootstrap import get_bootstrap_manager, get_onboarding, OnboardingStep
+    from src.soul.bootstrap import OnboardingStep, get_bootstrap_manager, get_onboarding
     from src.utils.llm import llm_client
-    
+
     bootstrap = get_bootstrap_manager()
     onboarding = get_onboarding()
-    
+
     if bootstrap.needs_bootstrap():
         # First run - generate identity and start onboarding
         await update.message.reply_text("🚀 *First run detected!* Setting up...", parse_mode="Markdown")
-        
+
         try:
             # Generate unique identity
             identity = await bootstrap.generate_identity(llm_client)
             bootstrap.write_identity(identity)
-            
+
             # Get welcome message
             welcome = onboarding.get_message_for_step(
                 OnboardingStep.WELCOME,
                 identity["name"]
             )
-            
+
             # Start onboarding flow
             onboarding.set_step(OnboardingStep.NAME)
             bootstrap.mark_complete()
-            
+
             await update.message.reply_text(welcome, parse_mode="Markdown")
-            
+
         except Exception as e:
             logger.error(f"Bootstrap failed: {e}")
             # Fallback to normal welcome
@@ -51,24 +51,24 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 parse_mode="Markdown"
             )
         return
-    
+
     # Check if we're mid-onboarding
     if not onboarding.is_complete():
         step = onboarding.get_step()
         bot_name = "Brain"  # Default
-        
+
         try:
             from src.agent.brain import agent
             if agent.soul_context and agent.soul_context.identity:
                 bot_name = agent.soul_context.identity.get("name", "Brain")
         except Exception:
             pass
-        
+
         message = onboarding.get_message_for_step(step, bot_name)
         if message:
             await update.message.reply_text(message, parse_mode="Markdown")
             return
-    
+
     # Normal welcome for returning users
     welcome_text = """
 🧠 *Welcome back!*
@@ -95,13 +95,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /status command - check system health."""
     await update.message.reply_text("🔄 Checking system status...")
-    
+
     # Check Ollama
     ollama_ok = await _check_ollama()
-    
+
     # Check Weaviate
     weaviate_ok = await _check_weaviate()
-    
+
     # Get knowledge base stats
     stats = {"total_chunks": 0}
     if weaviate_ok:
@@ -110,7 +110,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             stats = await agent.get_stats()
         except Exception as e:
             logger.warning(f"Could not get stats: {e}")
-    
+
     # Build status message
     status_lines = [
         "🔧 *System Status*",
@@ -126,7 +126,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "*Knowledge Base:*",
         f"🧩 Indexed chunks: {stats.get('total_chunks', 0)}",
     ]
-    
+
     # Add troubleshooting hint if services are down
     if not ollama_ok or not weaviate_ok:
         status_lines.extend([
@@ -134,7 +134,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "⚠️ *Some services are down.*",
             "Run `sbb status` to check Docker containers.",
         ])
-    
+
     status_text = "\n".join(status_lines)
     await update.message.reply_text(status_text, parse_mode="Markdown")
 
@@ -144,7 +144,7 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Handle /search command - search knowledge base."""
     # Get the search query (everything after /search)
     query = " ".join(context.args) if context.args else ""
-    
+
     if not query:
         await update.message.reply_text(
             "🔍 *Search your knowledge base*\n\n"
@@ -156,17 +156,17 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             parse_mode="Markdown"
         )
         return
-    
+
     # Show typing indicator
     from telegram.constants import ChatAction
     await update.message.chat.send_action(ChatAction.TYPING)
-    
+
     try:
         from src.agent.brain import agent
-        
+
         # Search the knowledge base
         results = await agent.search(query, limit=5)
-        
+
         if not results:
             await update.message.reply_text(
                 f"🔍 *Search:* _{query}_\n\n"
@@ -175,30 +175,30 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 parse_mode="Markdown"
             )
             return
-        
+
         # Format results
         result_lines = [
             f"🔍 *Search:* _{query}_",
             f"📊 Found {len(results)} relevant chunks:",
             ""
         ]
-        
+
         for i, r in enumerate(results, 1):
             # Truncate content for display
             content_preview = r.content[:150] + "..." if len(r.content) > 150 else r.content
             relevance_pct = int(r.relevance * 100)
-            
+
             result_lines.extend([
                 f"*{i}. {r.source}* ({relevance_pct}% match)",
                 f"_{content_preview}_",
                 ""
             ])
-        
+
         await update.message.reply_text(
             "\n".join(result_lines),
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Search error: {e}")
         await update.message.reply_text(
@@ -213,7 +213,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     try:
         from src.agent.brain import agent
         stats = await agent.get_stats()
-        
+
         stats_text = f"""
 📊 *Knowledge Base Statistics*
 
@@ -226,9 +226,9 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 _Index more content to build your second brain._
         """
-        
+
         await update.message.reply_text(stats_text.strip(), parse_mode="Markdown")
-        
+
     except Exception as e:
         logger.error(f"Stats error: {e}")
         await update.message.reply_text(
@@ -241,7 +241,7 @@ _Index more content to build your second brain._
 async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /graph command - explore entity connections."""
     entity = " ".join(context.args) if context.args else ""
-    
+
     if not entity:
         await update.message.reply_text(
             "🔗 *Knowledge Graph Explorer*\n\n"
@@ -254,15 +254,15 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             parse_mode="Markdown"
         )
         return
-    
+
     from telegram.constants import ChatAction
     await update.message.chat.send_action(ChatAction.TYPING)
-    
+
     try:
         from src.agent.graph_queries import graph_helper
-        
+
         result = await graph_helper.explore_entity(entity)
-        
+
         if not result.get("found"):
             await update.message.reply_text(
                 f"🔍 Entity `{entity}` not found in knowledge graph.\n\n"
@@ -270,22 +270,22 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 parse_mode="Markdown"
             )
             return
-        
+
         entity_info = result["entity"]
         related = result.get("related", [])
         docs = result.get("documents", [])
-        
+
         # Format response
         lines = [
             f"🔗 *{entity_info['name']}*",
             f"Type: {entity_info.get('type', 'unknown')}",
         ]
-        
+
         if entity_info.get("description"):
             lines.append(f"_{entity_info['description']}_")
-        
+
         lines.append("")
-        
+
         if related:
             lines.append(f"*Connected entities ({len(related)}):*")
             visualization = graph_helper.format_graph_visualization(
@@ -295,16 +295,16 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             lines.append(f"```\n{visualization}\n```")
         else:
             lines.append("_No connections found._")
-        
+
         if docs:
             lines.append("")
             lines.append(f"*Mentioned in {len(docs)} document(s)*")
-        
+
         await update.message.reply_text(
             "\n".join(lines),
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Graph error: {e}")
         await update.message.reply_text(
@@ -317,7 +317,7 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /ideas command - generate creative ideas from graph."""
     topic = " ".join(context.args) if context.args else ""
-    
+
     if not topic:
         await update.message.reply_text(
             "💡 *Crazy Ideas Generator*\n\n"
@@ -330,21 +330,21 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             parse_mode="Markdown"
         )
         return
-    
+
     from telegram.constants import ChatAction
     await update.message.chat.send_action(ChatAction.TYPING)
-    
+
     try:
         from src.agent.graph_queries import graph_helper
-        
+
         await update.message.reply_text(
             f"💡 Generating ideas about *{topic}*...\n"
             "_Exploring your knowledge graph for unexpected connections._",
             parse_mode="Markdown"
         )
-        
+
         ideas = await graph_helper.generate_ideas(topic, count=3)
-        
+
         if not ideas:
             await update.message.reply_text(
                 f"🤔 Couldn't find enough connections for *{topic}*.\n\n"
@@ -352,13 +352,13 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 parse_mode="Markdown"
             )
             return
-        
+
         # Format ideas
         lines = [
             f"💡 *Crazy Ideas about \"{topic}\"*",
             ""
         ]
-        
+
         for i, idea in enumerate(ideas, 1):
             path_str = " → ".join(idea.path)
             lines.extend([
@@ -368,12 +368,12 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             if idea.explanation:
                 lines.append(f"📝 {idea.explanation}")
             lines.append("")
-        
+
         await update.message.reply_text(
             "\n".join(lines),
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Ideas error: {e}")
         await update.message.reply_text(
@@ -385,27 +385,28 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 @log_command
 async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /export command - export knowledge to file."""
-    from telegram.constants import ChatAction
-    import json
     import io
+    import json
     from datetime import datetime
-    
+
+    from telegram.constants import ChatAction
+
     await update.message.reply_text(
         "📤 Exporting your knowledge base...",
         parse_mode="Markdown"
     )
     await update.message.chat.send_action(ChatAction.UPLOAD_DOCUMENT)
-    
+
     try:
         from src.agent.brain import agent
         from src.storage.graph import knowledge_graph
-        
+
         # Get vector store stats
         stats = await agent.get_stats()
-        
+
         # Get all entities from graph
         entities = knowledge_graph.get_most_connected(limit=1000)
-        
+
         # Build export data
         export_data = {
             "exported_at": datetime.utcnow().isoformat(),
@@ -416,12 +417,12 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             },
             "top_entities": entities,
         }
-        
+
         # Create JSON file
         json_content = json.dumps(export_data, indent=2, ensure_ascii=False)
         file_bytes = io.BytesIO(json_content.encode('utf-8'))
         file_bytes.name = f"securebrainbox_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
-        
+
         await update.message.reply_document(
             document=file_bytes,
             filename=file_bytes.name,
@@ -433,7 +434,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             ),
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Export error: {e}")
         await update.message.reply_text(
@@ -447,25 +448,25 @@ async def identity_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """Handle /identity command - show bot identity."""
     try:
         from src.agent.brain import agent
-        
+
         if not agent.soul_context or not agent.soul_context.identity:
             await update.message.reply_text(
                 "🧠 *Identity*\n\n_No identity configured yet._",
                 parse_mode="Markdown"
             )
             return
-        
+
         identity = agent.soul_context.identity
-        
+
         # Truncate for display
         if len(identity) > 3000:
             identity = identity[:3000] + "\n\n_...truncated_"
-        
+
         await update.message.reply_text(
             f"🧠 *Bot Identity*\n\n{identity}",
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Identity error: {e}")
         await update.message.reply_text(
@@ -477,13 +478,12 @@ async def identity_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 @log_command
 async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /user command - show/edit user profile."""
-    from pathlib import Path
-    
+
     try:
         from src.agent.brain import agent
-        
+
         args = " ".join(context.args) if context.args else ""
-        
+
         if not args:
             # Show current user profile
             if not agent.soul_context or not agent.soul_context.user:
@@ -493,13 +493,13 @@ async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     parse_mode="Markdown"
                 )
                 return
-            
+
             user_content = agent.soul_context.user
-            
+
             # Truncate for display
             if len(user_content) > 3000:
                 user_content = user_content[:3000] + "\n\n_...truncated_"
-            
+
             await update.message.reply_text(
                 f"👤 *User Profile*\n\n{user_content}",
                 parse_mode="Markdown"
@@ -512,7 +512,7 @@ async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 f"Location: `{settings.data_dir}/USER.md`",
                 parse_mode="Markdown"
             )
-        
+
     except Exception as e:
         logger.error(f"User error: {e}")
         await update.message.reply_text(
@@ -526,10 +526,10 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Handle /memory command - show long-term memory."""
     try:
         from src.soul.memory import get_memory_manager
-        
+
         manager = get_memory_manager()
         memory_content = await manager.get_memory()
-        
+
         if not memory_content or len(memory_content.strip()) < 20:
             await update.message.reply_text(
                 "🧠 *Long-term Memory*\n\n_No memories stored yet._\n\n"
@@ -538,16 +538,16 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 parse_mode="Markdown"
             )
             return
-        
+
         # Truncate for display
         if len(memory_content) > 3500:
             memory_content = memory_content[:3500] + "\n\n_...truncated_"
-        
+
         await update.message.reply_text(
             f"🧠 *Long-term Memory*\n\n{memory_content}",
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Memory error: {e}")
         await update.message.reply_text(
@@ -561,26 +561,26 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Handle /today command - show today's log."""
     try:
         from src.soul.memory import get_memory_manager
-        
+
         manager = get_memory_manager()
         log_content = await manager.get_today_log()
-        
+
         if not log_content or len(log_content.strip()) < 20:
             await update.message.reply_text(
                 "📅 *Today's Log*\n\n_No entries yet today._",
                 parse_mode="Markdown"
             )
             return
-        
+
         # Truncate for display
         if len(log_content) > 3500:
             log_content = log_content[:3500] + "\n\n_...truncated_"
-        
+
         await update.message.reply_text(
             f"📅 *Today's Log*\n\n{log_content}",
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Today log error: {e}")
         await update.message.reply_text(
@@ -594,10 +594,10 @@ async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Handle /skills command - list available skills."""
     try:
         from src.soul.skills import get_skill_registry
-        
+
         registry = get_skill_registry()
         skills = registry.list_skills()
-        
+
         if not skills:
             await update.message.reply_text(
                 "⚔️ *Skills*\n\n_No skills installed._\n\n"
@@ -606,16 +606,16 @@ async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 parse_mode="Markdown"
             )
             return
-        
+
         lines = [f"⚔️ *Available Skills* ({len(skills)})\n"]
-        
+
         for skill in skills:
             desc = skill["description"][:100] + "..." if len(skill["description"]) > 100 else skill["description"]
             lines.append(f"• **{skill['name']}**")
             lines.append(f"  _{desc}_\n")
-        
+
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
-        
+
     except Exception as e:
         logger.error(f"Skills error: {e}")
         await update.message.reply_text(
@@ -628,7 +628,7 @@ async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /remember command - save something to memory."""
     content = " ".join(context.args) if context.args else ""
-    
+
     if not content:
         await update.message.reply_text(
             "💾 *Remember*\n\n"
@@ -639,18 +639,18 @@ async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             parse_mode="Markdown"
         )
         return
-    
+
     try:
         from src.soul.memory import get_memory_manager
-        
+
         manager = get_memory_manager()
         await manager.append_to_memory("Notes", content)
-        
+
         await update.message.reply_text(
             f"✅ *Saved to memory!*\n\n_{content}_",
             parse_mode="Markdown"
         )
-        
+
     except Exception as e:
         logger.error(f"Remember error: {e}")
         await update.message.reply_text(

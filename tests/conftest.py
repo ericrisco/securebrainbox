@@ -1,8 +1,6 @@
 """Pytest configuration and fixtures."""
 
 import os
-import tempfile
-from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -26,13 +24,13 @@ LOG_LEVEL=INFO
 """
     env_file = tmp_path / ".env"
     env_file.write_text(env_content)
-    
+
     # Change to temp directory
     original_dir = os.getcwd()
     os.chdir(tmp_path)
-    
+
     yield env_file
-    
+
     # Restore original directory
     os.chdir(original_dir)
 

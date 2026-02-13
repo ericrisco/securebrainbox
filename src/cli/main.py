@@ -1,16 +1,13 @@
 """SecureBrainBox CLI."""
 
-import subprocess
-import sys
 
 import click
 from rich.console import Console
 
 from src import __version__
-from src.cli.install import install, LOGO
-from src.cli.commands import start, stop, restart, status, logs
+from src.cli.commands import logs, restart, start, status, stop
 from src.cli.config import config
-
+from src.cli.install import LOGO, install
 
 console = Console()
 
@@ -20,7 +17,7 @@ console = Console()
 @click.pass_context
 def cli(ctx):
     """🧠 SecureBrainBox - Your private second brain.
-    
+
     100% local AI agent for Telegram with vector + graph memory.
     """
     if ctx.invoked_subcommand is None:

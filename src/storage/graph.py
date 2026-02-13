@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import kuzu
 
@@ -13,36 +12,36 @@ logger = logging.getLogger(__name__)
 
 class KnowledgeGraph:
     """Knowledge Graph using Kuzu embedded database.
-    
+
     Schema:
     - Entity: name, type, description, source
     - Document: source, source_type, timestamp
     - MENTIONS: Document -> Entity
     - RELATED_TO: Entity <-> Entity
     """
-    
-    def __init__(self, db_path: Optional[str] = None):
+
+    def __init__(self, db_path: str | None = None):
         """Initialize Kuzu database.
-        
+
         Args:
             db_path: Path to database directory.
         """
         self.db_path = Path(db_path or settings.data_dir) / "kuzu_db"
         self.db_path.mkdir(parents=True, exist_ok=True)
-        
-        self._db: Optional[kuzu.Database] = None
-        self._conn: Optional[kuzu.Connection] = None
-    
+
+        self._db: kuzu.Database | None = None
+        self._conn: kuzu.Connection | None = None
+
     def connect(self) -> None:
         """Connect to Kuzu database and create schema."""
         logger.info(f"Connecting to Kuzu at {self.db_path}")
-        
+
         self._db = kuzu.Database(str(self.db_path))
         self._conn = kuzu.Connection(self._db)
-        
+
         self._init_schema()
         logger.info("Kuzu connected and schema initialized")
-    
+
     def _init_schema(self) -> None:
         """Initialize graph schema if not exists."""
         # Node tables
@@ -55,7 +54,7 @@ class KnowledgeGraph:
                 PRIMARY KEY (name)
             )
         """)
-        
+
         self._safe_execute("""
             CREATE NODE TABLE IF NOT EXISTS Document (
                 source STRING,
@@ -64,22 +63,22 @@ class KnowledgeGraph:
                 PRIMARY KEY (source)
             )
         """)
-        
+
         # Relationship tables
         self._safe_execute("""
             CREATE REL TABLE IF NOT EXISTS MENTIONS (
                 FROM Document TO Entity
             )
         """)
-        
+
         self._safe_execute("""
             CREATE REL TABLE IF NOT EXISTS RELATED_TO (
                 FROM Entity TO Entity,
                 relation STRING
             )
         """)
-    
-    def _safe_execute(self, query: str, params: dict = None) -> Optional[kuzu.QueryResult]:
+
+    def _safe_execute(self, query: str, params: dict = None) -> kuzu.QueryResult | None:
         """Execute query with error handling."""
         try:
             if params:
@@ -91,9 +90,9 @@ class KnowledgeGraph:
                 return None
             logger.error(f"Kuzu query error: {e}")
             raise
-    
+
     # --- Entity Operations ---
-    
+
     def add_entity(
         self,
         name: str,
@@ -102,13 +101,13 @@ class KnowledgeGraph:
         source: str = ""
     ) -> bool:
         """Add or update an entity.
-        
+
         Args:
             name: Entity name (unique identifier).
             entity_type: Type (PERSON, ORG, CONCEPT, etc.).
             description: Brief description.
             source: Where this entity was found.
-            
+
         Returns:
             True if successful.
         """
@@ -126,7 +125,7 @@ class KnowledgeGraph:
         except Exception as e:
             logger.error(f"Error adding entity {name}: {e}")
             return False
-    
+
     def add_document(
         self,
         source: str,
@@ -146,7 +145,7 @@ class KnowledgeGraph:
         except Exception as e:
             logger.error(f"Error adding document {source}: {e}")
             return False
-    
+
     def add_mention(self, doc_source: str, entity_name: str) -> bool:
         """Create MENTIONS relationship between document and entity."""
         try:
@@ -161,7 +160,7 @@ class KnowledgeGraph:
         except Exception as e:
             logger.error(f"Error adding mention: {e}")
             return False
-    
+
     def add_relation(
         self,
         from_entity: str,
@@ -181,9 +180,9 @@ class KnowledgeGraph:
         except Exception as e:
             logger.error(f"Error adding relation: {e}")
             return False
-    
+
     # --- Query Operations ---
-    
+
     def get_related_entities(
         self,
         entity_name: str,
@@ -191,12 +190,12 @@ class KnowledgeGraph:
         limit: int = 20
     ) -> list[dict]:
         """Get entities related to given entity.
-        
+
         Args:
             entity_name: Starting entity.
             depth: How many hops to traverse.
             limit: Max results.
-            
+
         Returns:
             List of related entities with path info.
         """
@@ -210,7 +209,7 @@ class KnowledgeGraph:
                 """,
                 {"name": entity_name, "limit": limit}
             )
-            
+
             entities = []
             while result.has_next():
                 row = result.get_next()
@@ -219,12 +218,12 @@ class KnowledgeGraph:
                     "type": row[1],
                     "description": row[2]
                 })
-            
+
             return entities
         except Exception as e:
             logger.error(f"Error getting related entities: {e}")
             return []
-    
+
     def find_path(
         self,
         entity1: str,
@@ -232,7 +231,7 @@ class KnowledgeGraph:
         max_depth: int = 5
     ) -> list[str]:
         """Find shortest path between two entities.
-        
+
         Returns:
             List of entity names in the path.
         """
@@ -246,16 +245,16 @@ class KnowledgeGraph:
                 """,
                 {"e1": entity1, "e2": entity2}
             )
-            
+
             if result.has_next():
                 nodes = result.get_next()[0]
                 return [n["name"] for n in nodes]
-            
+
             return []
         except Exception as e:
             logger.error(f"Error finding path: {e}")
             return []
-    
+
     def get_documents_for_entity(
         self,
         entity_name: str,
@@ -271,17 +270,17 @@ class KnowledgeGraph:
                 """,
                 {"name": entity_name, "limit": limit}
             )
-            
+
             docs = []
             while result.has_next():
                 row = result.get_next()
                 docs.append({"source": row[0], "type": row[1]})
-            
+
             return docs
         except Exception as e:
             logger.error(f"Error getting documents: {e}")
             return []
-    
+
     def get_most_connected(self, limit: int = 10) -> list[dict]:
         """Get most connected entities."""
         try:
@@ -294,7 +293,7 @@ class KnowledgeGraph:
                 """,
                 {"limit": limit}
             )
-            
+
             entities = []
             while result.has_next():
                 row = result.get_next()
@@ -303,22 +302,22 @@ class KnowledgeGraph:
                     "type": row[1],
                     "connections": row[2]
                 })
-            
+
             return entities
         except Exception as e:
             logger.error(f"Error getting most connected: {e}")
             return []
-    
+
     def search_entities(
         self,
         query: str,
-        entity_type: Optional[str] = None,
+        entity_type: str | None = None,
         limit: int = 20
     ) -> list[dict]:
         """Search entities by name pattern."""
         try:
             type_filter = f"AND e.type = '{entity_type}'" if entity_type else ""
-            
+
             result = self._conn.execute(
                 f"""
                 MATCH (e:Entity)
@@ -328,7 +327,7 @@ class KnowledgeGraph:
                 """,
                 {"query": query, "limit": limit}
             )
-            
+
             entities = []
             while result.has_next():
                 row = result.get_next()
@@ -337,12 +336,12 @@ class KnowledgeGraph:
                     "type": row[1],
                     "description": row[2]
                 })
-            
+
             return entities
         except Exception as e:
             logger.error(f"Error searching entities: {e}")
             return []
-    
+
     def get_entity_count(self) -> int:
         """Get total entity count."""
         try:
@@ -352,7 +351,7 @@ class KnowledgeGraph:
             return 0
         except Exception:
             return 0
-    
+
     def get_relation_count(self) -> int:
         """Get total relation count."""
         try:
@@ -362,7 +361,7 @@ class KnowledgeGraph:
             return 0
         except Exception:
             return 0
-    
+
     def close(self) -> None:
         """Close database connection."""
         if self._conn:
