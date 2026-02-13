@@ -76,14 +76,11 @@ class BootstrapManager:
             "name": "Brain",
             "emoji": "🧠",
             "tagline": "Your second brain that never forgets",
-            "personality": "helpful"
+            "personality": "helpful",
         }
 
         try:
-            response = await llm_client.generate(
-                IDENTITY_GENERATION_PROMPT,
-                max_tokens=200
-            )
+            response = await llm_client.generate(IDENTITY_GENERATION_PROMPT, max_tokens=200)
 
             # Parse response
             for line in response.strip().split("\n"):
@@ -116,14 +113,14 @@ class BootstrapManager:
 
 ## Who I Am
 
-- **Name:** {identity['name']}
-- **Emoji:** {identity['emoji']}
+- **Name:** {identity["name"]}
+- **Emoji:** {identity["emoji"]}
 - **Role:** Personal knowledge assistant
-- **Tagline:** {identity['tagline']}
+- **Tagline:** {identity["tagline"]}
 
 ## Personality
 
-- {identity['personality'].capitalize()}
+- {identity["personality"].capitalize()}
 - Helpful and direct
 - Privacy-focused
 - Remembers what matters
@@ -147,8 +144,10 @@ class BootstrapManager:
 
 # --- User Onboarding ---
 
+
 class OnboardingStep(Enum):
     """Onboarding flow steps."""
+
     WELCOME = "welcome"
     NAME = "name"
     TIMEZONE = "timezone"
@@ -250,6 +249,7 @@ class UserOnboarding:
 
         try:
             import json
+
             return json.loads(self.data_file.read_text(encoding="utf-8"))
         except Exception:
             return {}
@@ -262,6 +262,7 @@ class UserOnboarding:
             value: Data value.
         """
         import json
+
         data = self.get_stored_data()
         data[key] = value
         self.data_file.write_text(json.dumps(data), encoding="utf-8")
@@ -286,7 +287,6 @@ Everything runs 100% locally — your data never leaves your machine.
 
 Let me get to know you. *What's your name?*
 """.strip(),
-
             OnboardingStep.NAME: """
 Nice to meet you!
 
@@ -296,7 +296,6 @@ Examples: `Europe/London`, `America/New_York`, `Asia/Tokyo`
 
 Or just tell me your city and I'll figure it out.
 """.strip(),
-
             OnboardingStep.TIMEZONE: """
 Perfect! One last thing — how should I communicate with you?
 
@@ -306,7 +305,6 @@ Perfect! One last thing — how should I communicate with you?
 
 Reply with 1, 2, or 3.
 """.strip(),
-
             OnboardingStep.PREFERENCES: """
 ✅ *Setup complete!*
 
@@ -405,7 +403,7 @@ Let's go! 🚀
         style_descriptions = {
             "casual": "Friendly, relaxed communication",
             "professional": "Formal, precise communication",
-            "technical": "Detailed, code-focused communication"
+            "technical": "Detailed, code-focused communication",
         }
 
         content = f"""# User
@@ -463,6 +461,7 @@ def get_bootstrap_manager(data_dir: str = None) -> BootstrapManager:
 
     if bootstrap_manager is None:
         from src.config import settings
+
         bootstrap_manager = BootstrapManager(data_dir or settings.data_dir)
 
     return bootstrap_manager
@@ -481,6 +480,7 @@ def get_onboarding(data_dir: str = None) -> UserOnboarding:
 
     if onboarding is None:
         from src.config import settings
+
         onboarding = UserOnboarding(data_dir or settings.data_dir)
 
     return onboarding

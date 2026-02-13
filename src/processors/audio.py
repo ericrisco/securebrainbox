@@ -42,10 +42,7 @@ class AudioProcessor(BaseProcessor):
         return mime_type in self.SUPPORTED_MIMES
 
     async def process(
-        self,
-        content: bytes,
-        filename: str | None = None,
-        **kwargs
+        self, content: bytes, filename: str | None = None, **kwargs
     ) -> ProcessedContent:
         """Transcribe audio using Whisper.
 
@@ -84,14 +81,14 @@ class AudioProcessor(BaseProcessor):
                         source=filename or "audio",
                         source_type="audio",
                         metadata=metadata,
-                        error="Could not transcribe audio (no speech detected)"
+                        error="Could not transcribe audio (no speech detected)",
                     )
 
                 return ProcessedContent(
                     text=transcription,
                     source=filename or "audio",
                     source_type="audio",
-                    metadata=metadata
+                    metadata=metadata,
                 )
 
             finally:
@@ -106,7 +103,7 @@ class AudioProcessor(BaseProcessor):
                 source=filename or "audio",
                 source_type="audio",
                 metadata=metadata,
-                error=str(e)
+                error=str(e),
             )
 
     def _get_suffix(self, filename: str | None) -> str:
@@ -122,14 +119,18 @@ class AudioProcessor(BaseProcessor):
         try:
             result = subprocess.run(
                 [
-                    "ffprobe", "-v", "error",
-                    "-show_entries", "format=duration",
-                    "-of", "default=noprint_wrappers=1:nokey=1",
-                    str(file_path)
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    str(file_path),
                 ],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
             )
             return float(result.stdout.strip())
         except Exception as e:
@@ -169,16 +170,10 @@ class AudioProcessor(BaseProcessor):
         wav_path = file_path.with_suffix(".wav")
 
         subprocess.run(
-            [
-                "ffmpeg", "-i", str(file_path),
-                "-ar", "16000",
-                "-ac", "1",
-                "-y",
-                str(wav_path)
-            ],
+            ["ffmpeg", "-i", str(file_path), "-ar", "16000", "-ac", "1", "-y", str(wav_path)],
             capture_output=True,
             check=True,
-            timeout=60
+            timeout=60,
         )
 
         return wav_path

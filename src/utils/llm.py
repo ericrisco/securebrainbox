@@ -45,7 +45,7 @@ class LLMClient:
         prompt: str,
         system: str | None = None,
         temperature: float = 0.7,
-        max_tokens: int | None = None
+        max_tokens: int | None = None,
     ) -> str:
         """Generate a response from the LLM.
 
@@ -64,15 +64,9 @@ class LLMClient:
         messages = []
 
         if system:
-            messages.append({
-                "role": "system",
-                "content": system
-            })
+            messages.append({"role": "system", "content": system})
 
-        messages.append({
-            "role": "user",
-            "content": prompt
-        })
+        messages.append({"role": "user", "content": prompt})
 
         try:
             logger.debug(f"Generating response for prompt: {prompt[:50]}...")
@@ -81,11 +75,7 @@ class LLMClient:
             if max_tokens:
                 options["num_predict"] = max_tokens
 
-            response = self.client.chat(
-                model=self.model,
-                messages=messages,
-                options=options
-            )
+            response = self.client.chat(model=self.model, messages=messages, options=options)
 
             content = response.get("message", {}).get("content", "")
             logger.debug(f"Generated response of length {len(content)}")
@@ -97,10 +87,7 @@ class LLMClient:
             raise
 
     async def generate_stream(
-        self,
-        prompt: str,
-        system: str | None = None,
-        temperature: float = 0.7
+        self, prompt: str, system: str | None = None, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
         """Generate a response with streaming.
 
@@ -115,15 +102,9 @@ class LLMClient:
         messages = []
 
         if system:
-            messages.append({
-                "role": "system",
-                "content": system
-            })
+            messages.append({"role": "system", "content": system})
 
-        messages.append({
-            "role": "user",
-            "content": prompt
-        })
+        messages.append({"role": "user", "content": prompt})
 
         try:
             logger.debug(f"Streaming response for prompt: {prompt[:50]}...")
@@ -132,7 +113,7 @@ class LLMClient:
                 model=self.model,
                 messages=messages,
                 stream=True,
-                options={"temperature": temperature}
+                options={"temperature": temperature},
             )
 
             for chunk in stream:

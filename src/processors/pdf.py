@@ -31,10 +31,7 @@ class PDFProcessor(BaseProcessor):
         return mime_type in self.SUPPORTED_MIMES
 
     async def process(
-        self,
-        content: bytes,
-        filename: str | None = None,
-        **kwargs
+        self, content: bytes, filename: str | None = None, **kwargs
     ) -> ProcessedContent:
         """Extract text from PDF document.
 
@@ -66,14 +63,11 @@ class PDFProcessor(BaseProcessor):
                     source=filename or "document.pdf",
                     source_type="pdf",
                     metadata=metadata,
-                    error="Could not extract text from PDF (may be image-based)"
+                    error="Could not extract text from PDF (may be image-based)",
                 )
 
             return ProcessedContent(
-                text=text,
-                source=filename or "document.pdf",
-                source_type="pdf",
-                metadata=metadata
+                text=text, source=filename or "document.pdf", source_type="pdf", metadata=metadata
             )
 
         except Exception as e:
@@ -83,7 +77,7 @@ class PDFProcessor(BaseProcessor):
                 source=filename or "document.pdf",
                 source_type="pdf",
                 metadata=metadata,
-                error=str(e)
+                error=str(e),
             )
 
     async def _extract_with_pypdf(self, content: bytes, metadata: dict) -> str:

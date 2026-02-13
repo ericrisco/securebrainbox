@@ -34,11 +34,7 @@ LOGO = """
 def check_docker() -> bool:
     """Check if Docker is installed and running."""
     try:
-        result = subprocess.run(
-            ["docker", "info"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "info"], capture_output=True, timeout=10)
         return result.returncode == 0
     except Exception:
         return False
@@ -48,20 +44,12 @@ def check_docker_compose() -> bool:
     """Check if Docker Compose is available."""
     try:
         # Try docker compose (v2)
-        result = subprocess.run(
-            ["docker", "compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=10)
         if result.returncode == 0:
             return True
 
         # Try docker-compose (v1)
-        result = subprocess.run(
-            ["docker-compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker-compose", "version"], capture_output=True, timeout=10)
         return result.returncode == 0
     except Exception:
         return False
@@ -70,11 +58,7 @@ def check_docker_compose() -> bool:
 def get_compose_command() -> list[str]:
     """Get the appropriate docker compose command."""
     try:
-        result = subprocess.run(
-            ["docker", "compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=10)
         if result.returncode == 0:
             return ["docker", "compose"]
     except Exception:
@@ -109,11 +93,7 @@ def start_services(compose_cmd: list[str]) -> bool:
     """Start Docker services."""
     try:
         console.print("   [dim]Starting containers...[/]")
-        result = subprocess.run(
-            compose_cmd + ["up", "-d"],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(compose_cmd + ["up", "-d"], capture_output=True, text=True)
         if result.returncode != 0:
             console.print(f"   [red]Error: {result.stderr}[/]")
             return False
@@ -134,11 +114,13 @@ def pull_models(compose_cmd: list[str]) -> bool:
                 compose_cmd + ["exec", "-T", "ollama", "ollama", "pull", model],
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minutes timeout per model
+                timeout=600,  # 10 minutes timeout per model
             )
             if result.returncode != 0:
                 console.print(f"   [yellow]Warning: Could not pull {model}[/]")
-                console.print(f"   [dim]You can pull it later: docker compose exec ollama ollama pull {model}[/]")
+                console.print(
+                    f"   [dim]You can pull it later: docker compose exec ollama ollama pull {model}[/]"
+                )
         except subprocess.TimeoutExpired:
             console.print(f"   [yellow]Timeout pulling {model}, continuing...[/]")
         except Exception as e:
@@ -176,7 +158,9 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
         console.print("   [red]❌ Docker is not running![/]")
         console.print()
         console.print("   Please install and start Docker:")
-        console.print("   [link=https://docs.docker.com/get-docker/]https://docs.docker.com/get-docker/[/]")
+        console.print(
+            "   [link=https://docs.docker.com/get-docker/]https://docs.docker.com/get-docker/[/]"
+        )
         console.print()
         raise click.Abort()
     console.print("   [green]✅ Docker is running[/]")
@@ -232,10 +216,7 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
     # Step 4: Start services
     console.print("[bold]Step 4/5:[/] Starting services...")
 
-    should_start = non_interactive or Confirm.ask(
-        "   Start Docker containers now?",
-        default=True
-    )
+    should_start = non_interactive or Confirm.ask("   Start Docker containers now?", default=True)
 
     if should_start:
         if start_services(compose_cmd):
@@ -262,15 +243,17 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
     console.print()
 
     # Done!
-    console.print(Panel.fit(
-        "[bold green]✅ Installation Complete![/]\n\n"
-        "Your SecureBrainBox is ready!\n\n"
-        "[dim]Commands:[/]\n"
-        "  [bold]sbb start[/]     Start the bot\n"
-        "  [bold]sbb stop[/]      Stop all services\n"
-        "  [bold]sbb status[/]    Check service status\n"
-        "  [bold]sbb logs -f[/]   View live logs\n"
-        "  [bold]sbb config[/]    Manage configuration\n\n"
-        "[dim]Now open Telegram and message your bot![/]",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]✅ Installation Complete![/]\n\n"
+            "Your SecureBrainBox is ready!\n\n"
+            "[dim]Commands:[/]\n"
+            "  [bold]sbb start[/]     Start the bot\n"
+            "  [bold]sbb stop[/]      Stop all services\n"
+            "  [bold]sbb status[/]    Check service status\n"
+            "  [bold]sbb logs -f[/]   View live logs\n"
+            "  [bold]sbb config[/]    Manage configuration\n\n"
+            "[dim]Now open Telegram and message your bot![/]",
+            border_style="green",
+        )
+    )

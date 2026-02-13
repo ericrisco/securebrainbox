@@ -186,9 +186,7 @@ class TestSkillMetadata:
         from src.soul.skills import SkillMetadata
 
         metadata = SkillMetadata(
-            name="test",
-            description="A test skill",
-            path=Path("/tmp/test/SKILL.md")
+            name="test", description="A test skill", path=Path("/tmp/test/SKILL.md")
         )
 
         assert metadata.name == "test"
@@ -205,12 +203,7 @@ class TestSkill:
         from src.soul.skills import Skill, SkillMetadata
 
         metadata = SkillMetadata("test", "desc", Path("/tmp"))
-        skill = Skill(
-            metadata=metadata,
-            content="# Test",
-            scripts=[],
-            references=[]
-        )
+        skill = Skill(metadata=metadata, content="# Test", scripts=[], references=[])
 
         assert skill.metadata.name == "test"
         assert skill.content == "# Test"

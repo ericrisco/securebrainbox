@@ -1,6 +1,5 @@
 """Tests for content processors."""
 
-
 import pytest
 
 from src.processors.base import ProcessedContent
@@ -11,39 +10,24 @@ class TestProcessedContent:
 
     def test_success_with_text(self):
         """Test success property with text."""
-        content = ProcessedContent(
-            text="Some content",
-            source="test.pdf",
-            source_type="pdf"
-        )
+        content = ProcessedContent(text="Some content", source="test.pdf", source_type="pdf")
         assert content.success is True
 
     def test_success_without_text(self):
         """Test success property without text."""
-        content = ProcessedContent(
-            text="",
-            source="test.pdf",
-            source_type="pdf"
-        )
+        content = ProcessedContent(text="", source="test.pdf", source_type="pdf")
         assert content.success is False
 
     def test_success_with_error(self):
         """Test success property with error."""
         content = ProcessedContent(
-            text="Some content",
-            source="test.pdf",
-            source_type="pdf",
-            error="Something went wrong"
+            text="Some content", source="test.pdf", source_type="pdf", error="Something went wrong"
         )
         assert content.success is False
 
     def test_char_count(self):
         """Test char_count property."""
-        content = ProcessedContent(
-            text="Hello world",
-            source="test",
-            source_type="text"
-        )
+        content = ProcessedContent(text="Hello world", source="test", source_type="text")
         assert content.char_count == 11
 
 
@@ -145,7 +129,7 @@ class TestURLProcessor:
         """Test title extraction from og:title."""
         from src.processors.url import url_processor
 
-        html = '''
+        html = """
         <html>
         <head>
             <meta property="og:title" content="OG Title">
@@ -153,7 +137,7 @@ class TestURLProcessor:
         </head>
         <body></body>
         </html>
-        '''
+        """
         title = url_processor._extract_title(html)
 
         assert title == "OG Title"
@@ -223,9 +207,7 @@ class TestProcessorManager:
         from src.processors import processor_manager
 
         result = await processor_manager.process(
-            content=b"test",
-            mime_type="application/unknown",
-            filename="test.xyz"
+            content=b"test", mime_type="application/unknown", filename="test.xyz"
         )
 
         assert result.error is not None

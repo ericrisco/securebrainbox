@@ -35,22 +35,19 @@ class TextChunker:
     """
 
     DEFAULT_SEPARATORS = [
-        "\n\n",      # Paragraphs
-        "\n",        # Lines
-        ". ",        # Sentences
-        "? ",        # Questions
-        "! ",        # Exclamations
-        "; ",        # Semicolons
-        ", ",        # Commas
-        " ",         # Words
-        ""           # Characters (fallback)
+        "\n\n",  # Paragraphs
+        "\n",  # Lines
+        ". ",  # Sentences
+        "? ",  # Questions
+        "! ",  # Exclamations
+        "; ",  # Semicolons
+        ", ",  # Commas
+        " ",  # Words
+        "",  # Characters (fallback)
     ]
 
     def __init__(
-        self,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        separators: list[str] | None = None
+        self, chunk_size: int = 1000, chunk_overlap: int = 200, separators: list[str] | None = None
     ):
         """Initialize the text chunker.
 
@@ -71,9 +68,7 @@ class TextChunker:
             is_separator_regex=False,
         )
 
-        logger.info(
-            f"TextChunker initialized: size={chunk_size}, overlap={chunk_overlap}"
-        )
+        logger.info(f"TextChunker initialized: size={chunk_size}, overlap={chunk_overlap}")
 
     def chunk(self, text: str) -> list[str]:
         """Split text into chunks.
@@ -93,11 +88,7 @@ class TextChunker:
         return chunks
 
     def chunk_with_metadata(
-        self,
-        text: str,
-        source: str,
-        source_type: str,
-        extra_metadata: dict | None = None
+        self, text: str, source: str, source_type: str, extra_metadata: dict | None = None
     ) -> list[dict]:
         """Split text and attach metadata to each chunk.
 
@@ -130,9 +121,7 @@ class TextChunker:
 
             result.append(chunk_data)
 
-        logger.info(
-            f"Created {len(result)} chunks from {source} ({source_type})"
-        )
+        logger.info(f"Created {len(result)} chunks from {source} ({source_type})")
 
         return result
 

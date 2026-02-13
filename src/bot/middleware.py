@@ -20,6 +20,7 @@ def log_command(func: Callable) -> Callable:
     Returns:
         Wrapped function with logging.
     """
+
     @wraps(func)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Any:
         user = update.effective_user
@@ -48,10 +49,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         context: The context containing the error.
     """
     # Log the error
-    logger.error(
-        f"Exception while handling an update: {context.error}",
-        exc_info=context.error
-    )
+    logger.error(f"Exception while handling an update: {context.error}", exc_info=context.error)
 
     # Extract error details
     error_message = str(context.error) if context.error else "Unknown error"
@@ -71,8 +69,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             # Determine appropriate error message based on error type
             if "timeout" in error_message.lower():
                 user_message = (
-                    "⏱️ The request timed out. "
-                    "The AI services might be busy. Please try again."
+                    "⏱️ The request timed out. The AI services might be busy. Please try again."
                 )
             elif "connection" in error_message.lower():
                 user_message = (

@@ -1,8 +1,6 @@
 """Tests for knowledge graph functionality."""
 
 
-
-
 class TestEntityExtraction:
     """Test entity extraction."""
 
@@ -23,9 +21,7 @@ class TestEntityExtraction:
         from src.agent.entities import ExtractedEntity
 
         entity = ExtractedEntity(
-            name="Python",
-            type="TECHNOLOGY",
-            description="Programming language"
+            name="Python", type="TECHNOLOGY", description="Programming language"
         )
 
         assert entity.name == "Python"
@@ -38,7 +34,7 @@ class TestEntityExtraction:
 
         result = ExtractionResult(
             entities=[ExtractedEntity("Python", "TECHNOLOGY")],
-            relations=[ExtractedRelation("Python", "Django", "USES")]
+            relations=[ExtractedRelation("Python", "Django", "USES")],
         )
 
         assert len(result.entities) == 1
@@ -142,7 +138,7 @@ class TestCrazyIdeas:
         idea = CrazyIdea(
             path=["Python", "Django", "Web"],
             idea="Build a web scraper with Django admin",
-            explanation="Combines Python's power with Django's admin interface"
+            explanation="Combines Python's power with Django's admin interface",
         )
 
         assert len(idea.path) == 3

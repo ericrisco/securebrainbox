@@ -97,8 +97,7 @@ class MemoryFlusher:
                 saved["long_term"] += 1
 
             logger.info(
-                f"Memory flush complete: "
-                f"{saved['daily_log']} daily, {saved['long_term']} long-term"
+                f"Memory flush complete: {saved['daily_log']} daily, {saved['long_term']} long-term"
             )
 
             return saved

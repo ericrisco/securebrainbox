@@ -15,6 +15,7 @@ class ProcessedContent:
         metadata: Additional metadata about the content.
         error: Error message if processing failed.
     """
+
     text: str
     source: str
     source_type: str
@@ -41,10 +42,7 @@ class BaseProcessor(ABC):
 
     @abstractmethod
     async def process(
-        self,
-        content: bytes,
-        filename: str | None = None,
-        **kwargs
+        self, content: bytes, filename: str | None = None, **kwargs
     ) -> ProcessedContent:
         """Process content and extract text.
 

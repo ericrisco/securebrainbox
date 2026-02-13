@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GraphStats:
     """Statistics about the knowledge graph."""
+
     entity_count: int
     relation_count: int
     most_connected: list[dict]
@@ -21,6 +22,7 @@ class GraphStats:
 @dataclass
 class CrazyIdea:
     """A creative idea based on graph connections."""
+
     path: list[str]
     idea: str
     explanation: str
@@ -48,7 +50,7 @@ class GraphQueryHelper:
         return GraphStats(
             entity_count=knowledge_graph.get_entity_count(),
             relation_count=knowledge_graph.get_relation_count(),
-            most_connected=knowledge_graph.get_most_connected(5)
+            most_connected=knowledge_graph.get_most_connected(5),
         )
 
     async def explore_entity(self, entity_name: str) -> dict:
@@ -74,18 +76,9 @@ class GraphQueryHelper:
         # Get documents mentioning this entity
         documents = knowledge_graph.get_documents_for_entity(entity["name"], limit=5)
 
-        return {
-            "found": True,
-            "entity": entity,
-            "related": related,
-            "documents": documents
-        }
+        return {"found": True, "entity": entity, "related": related, "documents": documents}
 
-    async def generate_ideas(
-        self,
-        topic: str,
-        count: int = 3
-    ) -> list[CrazyIdea]:
+    async def generate_ideas(self, topic: str, count: int = 3) -> list[CrazyIdea]:
         """Generate creative ideas based on graph connections.
 
         Args:
@@ -106,11 +99,7 @@ class GraphQueryHelper:
 
         # For each match, explore second-degree connections
         for match in matches[:2]:
-            related = knowledge_graph.get_related_entities(
-                match["name"],
-                depth=2,
-                limit=10
-            )
+            related = knowledge_graph.get_related_entities(match["name"], depth=2, limit=10)
 
             if not related:
                 continue
@@ -163,21 +152,13 @@ class GraphQueryHelper:
                 # Try to use the whole response
                 idea_text = response.strip()[:200]
 
-            return CrazyIdea(
-                path=path,
-                idea=idea_text,
-                explanation=explanation
-            )
+            return CrazyIdea(path=path, idea=idea_text, explanation=explanation)
 
         except Exception as e:
             logger.error(f"Failed to generate idea: {e}")
             return None
 
-    async def find_connections(
-        self,
-        entity1: str,
-        entity2: str
-    ) -> dict:
+    async def find_connections(self, entity1: str, entity2: str) -> dict:
         """Find how two entities are connected.
 
         Args:
@@ -191,11 +172,7 @@ class GraphQueryHelper:
         path = knowledge_graph.find_path(entity1, entity2)
 
         if path:
-            return {
-                "connected": True,
-                "path": path,
-                "distance": len(path) - 1
-            }
+            return {"connected": True, "path": path, "distance": len(path) - 1}
 
         # No direct path - check if both exist
         e1_matches = knowledge_graph.search_entities(entity1, limit=1)
@@ -205,7 +182,7 @@ class GraphQueryHelper:
             "connected": False,
             "entity1_found": len(e1_matches) > 0,
             "entity2_found": len(e2_matches) > 0,
-            "path": []
+            "path": [],
         }
 
     def format_graph_visualization(self, entity_name: str, related: list[dict]) -> str:

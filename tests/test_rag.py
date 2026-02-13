@@ -47,10 +47,7 @@ class TestTextChunker:
 
         text = "This is test content for chunking."
         result = text_chunker.chunk_with_metadata(
-            text=text,
-            source="test.txt",
-            source_type="text",
-            extra_metadata={"author": "test"}
+            text=text, source="test.txt", source_type="text", extra_metadata={"author": "test"}
         )
 
         assert len(result) == 1
@@ -99,11 +96,7 @@ class TestPrompts:
         """Test indexing confirmation can be formatted."""
         from src.agent.prompts import INDEXING_CONFIRMATION
 
-        result = INDEXING_CONFIRMATION.format(
-            source="test.pdf",
-            source_type="pdf",
-            chunk_count=5
-        )
+        result = INDEXING_CONFIRMATION.format(source="test.pdf", source_type="pdf", chunk_count=5)
 
         assert "test.pdf" in result
         assert "pdf" in result
@@ -116,14 +109,13 @@ class TestEmbeddingClient:
     @pytest.mark.asyncio
     async def test_embed_returns_list(self):
         """Test embed returns a list of floats."""
-        with patch('src.utils.embeddings.ollama.Client') as mock_client:
+        with patch("src.utils.embeddings.ollama.Client") as mock_client:
             mock_instance = MagicMock()
-            mock_instance.embeddings.return_value = {
-                "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
-            }
+            mock_instance.embeddings.return_value = {"embedding": [0.1, 0.2, 0.3, 0.4, 0.5]}
             mock_client.return_value = mock_instance
 
             from src.utils.embeddings import EmbeddingClient
+
             client = EmbeddingClient()
             client._client = mock_instance
 
@@ -140,14 +132,13 @@ class TestLLMClient:
     @pytest.mark.asyncio
     async def test_generate_returns_string(self):
         """Test generate returns a string."""
-        with patch('src.utils.llm.ollama.Client') as mock_client:
+        with patch("src.utils.llm.ollama.Client") as mock_client:
             mock_instance = MagicMock()
-            mock_instance.chat.return_value = {
-                "message": {"content": "Generated response"}
-            }
+            mock_instance.chat.return_value = {"message": {"content": "Generated response"}}
             mock_client.return_value = mock_instance
 
             from src.utils.llm import LLMClient
+
             client = LLMClient()
             client._client = mock_instance
 
@@ -159,14 +150,13 @@ class TestLLMClient:
     @pytest.mark.asyncio
     async def test_generate_with_system_prompt(self):
         """Test generate with system prompt."""
-        with patch('src.utils.llm.ollama.Client') as mock_client:
+        with patch("src.utils.llm.ollama.Client") as mock_client:
             mock_instance = MagicMock()
-            mock_instance.chat.return_value = {
-                "message": {"content": "Response"}
-            }
+            mock_instance.chat.return_value = {"message": {"content": "Response"}}
             mock_client.return_value = mock_instance
 
             from src.utils.llm import LLMClient
+
             client = LLMClient()
             client._client = mock_instance
 
@@ -174,7 +164,7 @@ class TestLLMClient:
 
             # Verify chat was called with system message
             call_args = mock_instance.chat.call_args
-            messages = call_args.kwargs.get('messages', call_args[1].get('messages', []))
+            messages = call_args.kwargs.get("messages", call_args[1].get("messages", []))
 
             assert len(messages) == 2
             assert messages[0]["role"] == "system"
@@ -186,7 +176,7 @@ class TestSecureBrain:
     @pytest.fixture
     def mock_vector_store(self):
         """Mock the vector store."""
-        with patch('src.agent.brain.vector_store') as mock:
+        with patch("src.agent.brain.vector_store") as mock:
             mock.connect = AsyncMock()
             mock.search = AsyncMock(return_value=[])
             mock.add_chunks_batch = AsyncMock(return_value=["id1", "id2"])
@@ -196,7 +186,7 @@ class TestSecureBrain:
     @pytest.fixture
     def mock_llm_client(self):
         """Mock the LLM client."""
-        with patch('src.agent.brain.llm_client') as mock:
+        with patch("src.agent.brain.llm_client") as mock:
             mock.generate = AsyncMock(return_value="AI response")
             yield mock
 
@@ -237,7 +227,7 @@ class TestSecureBrain:
                 "content": "Python is a programming language",
                 "source": "doc1.pdf",
                 "source_type": "pdf",
-                "distance": 0.1
+                "distance": 0.1,
             }
         ]
 
@@ -254,9 +244,7 @@ class TestSecureBrain:
         brain = SecureBrain()
 
         count = await brain.index_text(
-            text="This is test content for indexing.",
-            source="test.txt",
-            source_type="text"
+            text="This is test content for indexing.", source="test.txt", source_type="text"
         )
 
         assert count > 0

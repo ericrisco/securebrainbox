@@ -53,7 +53,7 @@ class TestBootstrapManager:
                 "name": "TestBot",
                 "emoji": "🤖",
                 "tagline": "A test bot",
-                "personality": "helpful"
+                "personality": "helpful",
             }
 
             bootstrap.write_identity(identity)
@@ -211,11 +211,7 @@ class TestUserOnboarding:
         with tempfile.TemporaryDirectory() as tmpdir:
             onboarding = UserOnboarding(tmpdir)
 
-            data = {
-                "name": "Alice",
-                "timezone": "Europe/Paris",
-                "style": "technical"
-            }
+            data = {"name": "Alice", "timezone": "Europe/Paris", "style": "technical"}
 
             onboarding.write_user_profile(data)
 
@@ -275,7 +271,7 @@ class TestOnboardingFlow:
                 "name": "TestBot",
                 "emoji": "🤖",
                 "tagline": "A test bot",
-                "personality": "helpful"
+                "personality": "helpful",
             }
             bootstrap.write_identity(identity)
             bootstrap.mark_complete()

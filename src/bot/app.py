@@ -73,34 +73,21 @@ def create_application() -> Application:
 
     # Message handlers
     # URLs in text messages
-    app.add_handler(MessageHandler(
-        filters.TEXT & filters.Entity("url") & ~filters.COMMAND,
-        handle_url
-    ))
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Entity("url") & ~filters.COMMAND, handle_url)
+    )
 
     # Plain text messages
-    app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        handle_text_message
-    ))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
 
     # Documents (PDF, DOCX, etc.)
-    app.add_handler(MessageHandler(
-        filters.Document.ALL,
-        handle_document
-    ))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
     # Photos
-    app.add_handler(MessageHandler(
-        filters.PHOTO,
-        handle_photo
-    ))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
     # Voice messages and audio files
-    app.add_handler(MessageHandler(
-        filters.VOICE | filters.AUDIO,
-        handle_voice
-    ))
+    app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
 
     logger.info("Telegram application configured with all handlers")
 

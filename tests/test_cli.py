@@ -1,6 +1,5 @@
 """Tests for CLI commands."""
 
-
 from src.cli.main import cli
 
 

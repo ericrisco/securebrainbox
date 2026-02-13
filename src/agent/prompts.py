@@ -88,9 +88,7 @@ ERROR_MESSAGES = {
         "Please try again."
     ),
     "indexing_failed": (
-        "❌ *Indexing Error*\n\n"
-        "Failed to index the content. "
-        "Please check the logs for details."
+        "❌ *Indexing Error*\n\nFailed to index the content. Please check the logs for details."
     ),
 }
 

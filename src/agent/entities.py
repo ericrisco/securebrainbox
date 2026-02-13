@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ExtractedEntity:
     """Extracted entity from text."""
+
     name: str
     type: str  # PERSON, ORG, CONCEPT, TECHNOLOGY, LOCATION, DATE
     description: str = ""
@@ -20,6 +21,7 @@ class ExtractedEntity:
 @dataclass
 class ExtractedRelation:
     """Extracted relation between entities."""
+
     from_entity: str
     to_entity: str
     relation: str  # RELATED_TO, WORKS_AT, CREATED_BY, USES, etc.
@@ -28,6 +30,7 @@ class ExtractedRelation:
 @dataclass
 class ExtractionResult:
     """Result of entity extraction."""
+
     entities: list[ExtractedEntity] = field(default_factory=list)
     relations: list[ExtractedRelation] = field(default_factory=list)
     error: str | None = None
@@ -96,7 +99,7 @@ class EntityExtractor:
 
         # Truncate if too long
         if len(text) > self.max_text_length:
-            text = text[:self.max_text_length] + "..."
+            text = text[: self.max_text_length] + "..."
             logger.debug(f"Text truncated to {self.max_text_length} chars for extraction")
 
         try:
@@ -137,21 +140,25 @@ class EntityExtractor:
             entities = []
             for e in data.get("entities", []):
                 if e.get("name") and e.get("type"):
-                    entities.append(ExtractedEntity(
-                        name=self._normalize_name(e["name"]),
-                        type=e["type"].upper(),
-                        description=e.get("description", "")[:100]
-                    ))
+                    entities.append(
+                        ExtractedEntity(
+                            name=self._normalize_name(e["name"]),
+                            type=e["type"].upper(),
+                            description=e.get("description", "")[:100],
+                        )
+                    )
 
             # Parse relations
             relations = []
             for r in data.get("relations", []):
                 if r.get("from") and r.get("to"):
-                    relations.append(ExtractedRelation(
-                        from_entity=self._normalize_name(r["from"]),
-                        to_entity=self._normalize_name(r["to"]),
-                        relation=r.get("relation", "RELATED_TO").upper()
-                    ))
+                    relations.append(
+                        ExtractedRelation(
+                            from_entity=self._normalize_name(r["from"]),
+                            to_entity=self._normalize_name(r["to"]),
+                            relation=r.get("relation", "RELATED_TO").upper(),
+                        )
+                    )
 
             return ExtractionResult(entities=entities, relations=relations)
 

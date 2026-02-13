@@ -19,6 +19,7 @@ class SoulContext:
         memory: MEMORY.md content (long-term memory).
         recent_logs: Last N days of daily logs.
     """
+
     soul: str = ""
     identity: str = ""
     user: str = ""
@@ -127,7 +128,7 @@ class SoulLoader:
 
             # Truncate if too large
             if len(content) > self.MAX_FILE_CHARS:
-                content = content[:self.MAX_FILE_CHARS] + "\n\n[...truncated]"
+                content = content[: self.MAX_FILE_CHARS] + "\n\n[...truncated]"
                 logger.warning(f"Truncated {filename} to {self.MAX_FILE_CHARS} chars")
 
             return content.strip()
@@ -162,7 +163,7 @@ class SoulLoader:
 
                     # Truncate long logs
                     if len(content) > self.MAX_FILE_CHARS:
-                        content = content[:self.MAX_FILE_CHARS] + "\n\n[...truncated]"
+                        content = content[: self.MAX_FILE_CHARS] + "\n\n[...truncated]"
 
                     logs.append(content.strip())
                 except Exception as e:
@@ -173,4 +174,5 @@ class SoulLoader:
     def reload(self) -> SoulContext:
         """Synchronous reload for quick access."""
         import asyncio
+
         return asyncio.get_event_loop().run_until_complete(self.load())

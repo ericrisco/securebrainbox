@@ -94,11 +94,7 @@ class KnowledgeGraph:
     # --- Entity Operations ---
 
     def add_entity(
-        self,
-        name: str,
-        entity_type: str,
-        description: str = "",
-        source: str = ""
+        self, name: str, entity_type: str, description: str = "", source: str = ""
     ) -> bool:
         """Add or update an entity.
 
@@ -119,19 +115,14 @@ class KnowledgeGraph:
                 ON CREATE SET e.type = $type, e.description = $desc, e.source = $source
                 ON MATCH SET e.description = CASE WHEN $desc <> '' THEN $desc ELSE e.description END
                 """,
-                {"name": name, "type": entity_type, "desc": description, "source": source}
+                {"name": name, "type": entity_type, "desc": description, "source": source},
             )
             return True
         except Exception as e:
             logger.error(f"Error adding entity {name}: {e}")
             return False
 
-    def add_document(
-        self,
-        source: str,
-        source_type: str,
-        timestamp: int = 0
-    ) -> bool:
+    def add_document(self, source: str, source_type: str, timestamp: int = 0) -> bool:
         """Add a document node."""
         try:
             self._conn.execute(
@@ -139,7 +130,7 @@ class KnowledgeGraph:
                 MERGE (d:Document {source: $source})
                 ON CREATE SET d.source_type = $type, d.timestamp = $ts
                 """,
-                {"source": source, "type": source_type, "ts": timestamp}
+                {"source": source, "type": source_type, "ts": timestamp},
             )
             return True
         except Exception as e:
@@ -154,19 +145,14 @@ class KnowledgeGraph:
                 MATCH (d:Document {source: $doc}), (e:Entity {name: $entity})
                 MERGE (d)-[:MENTIONS]->(e)
                 """,
-                {"doc": doc_source, "entity": entity_name}
+                {"doc": doc_source, "entity": entity_name},
             )
             return True
         except Exception as e:
             logger.error(f"Error adding mention: {e}")
             return False
 
-    def add_relation(
-        self,
-        from_entity: str,
-        to_entity: str,
-        relation: str = "RELATED_TO"
-    ) -> bool:
+    def add_relation(self, from_entity: str, to_entity: str, relation: str = "RELATED_TO") -> bool:
         """Create relationship between two entities."""
         try:
             self._conn.execute(
@@ -174,7 +160,7 @@ class KnowledgeGraph:
                 MATCH (a:Entity {name: $from}), (b:Entity {name: $to})
                 MERGE (a)-[:RELATED_TO {relation: $rel}]->(b)
                 """,
-                {"from": from_entity, "to": to_entity, "rel": relation}
+                {"from": from_entity, "to": to_entity, "rel": relation},
             )
             return True
         except Exception as e:
@@ -183,12 +169,7 @@ class KnowledgeGraph:
 
     # --- Query Operations ---
 
-    def get_related_entities(
-        self,
-        entity_name: str,
-        depth: int = 2,
-        limit: int = 20
-    ) -> list[dict]:
+    def get_related_entities(self, entity_name: str, depth: int = 2, limit: int = 20) -> list[dict]:
         """Get entities related to given entity.
 
         Args:
@@ -207,29 +188,20 @@ class KnowledgeGraph:
                 RETURN DISTINCT b.name AS name, b.type AS type, b.description AS description
                 LIMIT $limit
                 """,
-                {"name": entity_name, "limit": limit}
+                {"name": entity_name, "limit": limit},
             )
 
             entities = []
             while result.has_next():
                 row = result.get_next()
-                entities.append({
-                    "name": row[0],
-                    "type": row[1],
-                    "description": row[2]
-                })
+                entities.append({"name": row[0], "type": row[1], "description": row[2]})
 
             return entities
         except Exception as e:
             logger.error(f"Error getting related entities: {e}")
             return []
 
-    def find_path(
-        self,
-        entity1: str,
-        entity2: str,
-        max_depth: int = 5
-    ) -> list[str]:
+    def find_path(self, entity1: str, entity2: str, max_depth: int = 5) -> list[str]:
         """Find shortest path between two entities.
 
         Returns:
@@ -243,7 +215,7 @@ class KnowledgeGraph:
                 )
                 RETURN nodes(path)
                 """,
-                {"e1": entity1, "e2": entity2}
+                {"e1": entity1, "e2": entity2},
             )
 
             if result.has_next():
@@ -255,11 +227,7 @@ class KnowledgeGraph:
             logger.error(f"Error finding path: {e}")
             return []
 
-    def get_documents_for_entity(
-        self,
-        entity_name: str,
-        limit: int = 10
-    ) -> list[dict]:
+    def get_documents_for_entity(self, entity_name: str, limit: int = 10) -> list[dict]:
         """Get documents that mention an entity."""
         try:
             result = self._conn.execute(
@@ -268,7 +236,7 @@ class KnowledgeGraph:
                 RETURN d.source AS source, d.source_type AS type
                 LIMIT $limit
                 """,
-                {"name": entity_name, "limit": limit}
+                {"name": entity_name, "limit": limit},
             )
 
             docs = []
@@ -291,17 +259,13 @@ class KnowledgeGraph:
                 ORDER BY connections DESC
                 LIMIT $limit
                 """,
-                {"limit": limit}
+                {"limit": limit},
             )
 
             entities = []
             while result.has_next():
                 row = result.get_next()
-                entities.append({
-                    "name": row[0],
-                    "type": row[1],
-                    "connections": row[2]
-                })
+                entities.append({"name": row[0], "type": row[1], "connections": row[2]})
 
             return entities
         except Exception as e:
@@ -309,10 +273,7 @@ class KnowledgeGraph:
             return []
 
     def search_entities(
-        self,
-        query: str,
-        entity_type: str | None = None,
-        limit: int = 20
+        self, query: str, entity_type: str | None = None, limit: int = 20
     ) -> list[dict]:
         """Search entities by name pattern."""
         try:
@@ -325,17 +286,13 @@ class KnowledgeGraph:
                 RETURN e.name AS name, e.type AS type, e.description AS description
                 LIMIT $limit
                 """,
-                {"query": query, "limit": limit}
+                {"query": query, "limit": limit},
             )
 
             entities = []
             while result.has_next():
                 row = result.get_next()
-                entities.append({
-                    "name": row[0],
-                    "type": row[1],
-                    "description": row[2]
-                })
+                entities.append({"name": row[0], "type": row[1], "description": row[2]})
 
             return entities
         except Exception as e:

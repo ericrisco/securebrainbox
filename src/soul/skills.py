@@ -18,6 +18,7 @@ class SkillMetadata:
         description: When to use this skill.
         path: Path to SKILL.md file.
     """
+
     name: str
     description: str
     path: Path
@@ -33,6 +34,7 @@ class Skill:
         scripts: Available script files.
         references: Available reference files.
     """
+
     metadata: SkillMetadata
     content: str
     scripts: list[Path]
@@ -125,11 +127,7 @@ class SkillRegistry:
             if not description:
                 logger.warning(f"Skill {name} has no description")
 
-            return SkillMetadata(
-                name=name,
-                description=description,
-                path=skill_md
-            )
+            return SkillMetadata(name=name, description=description, path=skill_md)
         except Exception as e:
             logger.error(f"Failed to load skill metadata from {skill_md}: {e}")
             return None
@@ -165,12 +163,7 @@ class SkillRegistry:
             if refs_dir.exists():
                 references = list(refs_dir.glob("*"))
 
-            return Skill(
-                metadata=metadata,
-                content=content,
-                scripts=scripts,
-                references=references
-            )
+            return Skill(metadata=metadata, content=content, scripts=scripts, references=references)
         except Exception as e:
             logger.error(f"Failed to load skill {name}: {e}")
             return None
@@ -198,7 +191,11 @@ class SkillRegistry:
         lines = ["## Available Skills\n"]
 
         for skill in self.skills.values():
-            desc = skill.description[:150] + "..." if len(skill.description) > 150 else skill.description
+            desc = (
+                skill.description[:150] + "..."
+                if len(skill.description) > 150
+                else skill.description
+            )
             lines.append(f"- **{skill.name}**: {desc}")
 
         lines.append("\n_Skills load automatically when relevant to the task._")
@@ -212,11 +209,7 @@ class SkillRegistry:
             List of skill info dicts.
         """
         return [
-            {
-                "name": s.name,
-                "description": s.description,
-                "path": str(s.path)
-            }
+            {"name": s.name, "description": s.description, "path": str(s.path)}
             for s in self.skills.values()
         ]
 
@@ -262,14 +255,12 @@ Only select a skill if it clearly matches. Respond with only one of these format
         if not self.registry.skills:
             return None
 
-        skills_list = "\n".join([
-            f"- {s.name}: {s.description}"
-            for s in self.registry.skills.values()
-        ])
+        skills_list = "\n".join(
+            [f"- {s.name}: {s.description}" for s in self.registry.skills.values()]
+        )
 
         prompt = self.SELECTION_PROMPT.format(
-            skills_list=skills_list,
-            user_message=user_message[:500]
+            skills_list=skills_list, user_message=user_message[:500]
         )
 
         try:
@@ -305,6 +296,7 @@ def get_skill_registry(skills_dir: str = None) -> SkillRegistry:
 
     if skill_registry is None:
         from src.config import settings
+
         skill_registry = SkillRegistry(skills_dir or f"{settings.data_dir}/skills")
         skill_registry.discover()
 

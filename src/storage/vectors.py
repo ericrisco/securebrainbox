@@ -71,41 +71,37 @@ class VectorStore:
                     vectorizer_config=Configure.Vectorizer.none(),
                     properties=[
                         Property(
-                            name="content",
-                            data_type=DataType.TEXT,
-                            description="The chunk content"
+                            name="content", data_type=DataType.TEXT, description="The chunk content"
                         ),
                         Property(
-                            name="source",
-                            data_type=DataType.TEXT,
-                            description="Source identifier"
+                            name="source", data_type=DataType.TEXT, description="Source identifier"
                         ),
                         Property(
                             name="source_type",
                             data_type=DataType.TEXT,
-                            description="Type of source (text, pdf, url, etc.)"
+                            description="Type of source (text, pdf, url, etc.)",
                         ),
                         Property(
                             name="chunk_index",
                             data_type=DataType.INT,
-                            description="Index of chunk within document"
+                            description="Index of chunk within document",
                         ),
                         Property(
                             name="total_chunks",
                             data_type=DataType.INT,
-                            description="Total chunks in document"
+                            description="Total chunks in document",
                         ),
                         Property(
                             name="metadata_json",
                             data_type=DataType.TEXT,
-                            description="Additional metadata as JSON"
+                            description="Additional metadata as JSON",
                         ),
                         Property(
                             name="indexed_at",
                             data_type=DataType.TEXT,
-                            description="Timestamp when indexed"
+                            description="Timestamp when indexed",
                         ),
-                    ]
+                    ],
                 )
                 logger.info(f"Created collection: {self.COLLECTION_NAME}")
 
@@ -124,7 +120,7 @@ class VectorStore:
         source_type: str,
         chunk_index: int = 0,
         total_chunks: int = 1,
-        metadata: dict | None = None
+        metadata: dict | None = None,
     ) -> str:
         """Add a document chunk to the vector store.
 
@@ -157,19 +153,13 @@ class VectorStore:
         }
 
         # Insert into Weaviate
-        result = self._collection.data.insert(
-            properties=properties,
-            vector=embedding
-        )
+        result = self._collection.data.insert(properties=properties, vector=embedding)
 
         logger.debug(f"Added chunk: {source} [{chunk_index}/{total_chunks}]")
         return str(result)
 
     async def add_chunks_batch(
-        self,
-        chunks: list[dict],
-        source: str,
-        source_type: str
+        self, chunks: list[dict], source: str, source_type: str
     ) -> list[str]:
         """Add multiple chunks in a batch.
 
@@ -194,7 +184,7 @@ class VectorStore:
                 source_type=source_type,
                 chunk_index=i,
                 total_chunks=total,
-                metadata=chunk.get("metadata")
+                metadata=chunk.get("metadata"),
             )
             ids.append(chunk_id)
 
@@ -202,11 +192,7 @@ class VectorStore:
         return ids
 
     async def search(
-        self,
-        query: str,
-        limit: int = 5,
-        source_type: str | None = None,
-        min_certainty: float = 0.0
+        self, query: str, limit: int = 5, source_type: str | None = None, min_certainty: float = 0.0
     ) -> list[dict]:
         """Search for similar documents.
 
@@ -229,7 +215,7 @@ class VectorStore:
         response = self._collection.query.near_vector(
             near_vector=query_embedding,
             limit=limit,
-            return_metadata=MetadataQuery(distance=True, certainty=True)
+            return_metadata=MetadataQuery(distance=True, certainty=True),
         )
 
         results = []
@@ -243,15 +229,17 @@ class VectorStore:
             if source_type and obj.properties.get("source_type") != source_type:
                 continue
 
-            results.append({
-                "content": obj.properties.get("content", ""),
-                "source": obj.properties.get("source", ""),
-                "source_type": obj.properties.get("source_type", ""),
-                "chunk_index": obj.properties.get("chunk_index", 0),
-                "distance": obj.metadata.distance,
-                "certainty": certainty,
-                "metadata": json.loads(obj.properties.get("metadata_json", "{}")),
-            })
+            results.append(
+                {
+                    "content": obj.properties.get("content", ""),
+                    "source": obj.properties.get("source", ""),
+                    "source_type": obj.properties.get("source_type", ""),
+                    "chunk_index": obj.properties.get("chunk_index", 0),
+                    "distance": obj.metadata.distance,
+                    "certainty": certainty,
+                    "metadata": json.loads(obj.properties.get("metadata_json", "{}")),
+                }
+            )
 
         logger.debug(f"Search returned {len(results)} results for: {query[:30]}...")
         return results

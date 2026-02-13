@@ -71,11 +71,7 @@ class ProcessorManager:
         return self.get_processor(mime_type) is not None
 
     async def process(
-        self,
-        content: bytes,
-        mime_type: str,
-        filename: str | None = None,
-        **kwargs
+        self, content: bytes, mime_type: str, filename: str | None = None, **kwargs
     ) -> ProcessedContent:
         """Process content with the appropriate processor.
 
@@ -97,7 +93,7 @@ class ProcessorManager:
                 source=filename or "unknown",
                 source_type="unknown",
                 metadata={"mime_type": mime_type},
-                error=f"Unsupported content type: {mime_type}"
+                error=f"Unsupported content type: {mime_type}",
             )
 
         logger.info(f"Processing {filename or 'content'} with {processor.name}")
@@ -109,10 +105,7 @@ class ProcessorManager:
         Returns:
             Dict mapping processor names to their supported MIME types.
         """
-        return {
-            processor.name: processor.supported_mimes
-            for processor in self.processors
-        }
+        return {processor.name: processor.supported_mimes for processor in self.processors}
 
     def get_all_supported_mimes(self) -> list[str]:
         """Get flat list of all supported MIME types.

@@ -22,8 +22,7 @@ class URLProcessor(BaseProcessor):
     SUPPORTED_MIMES = ["text/x-url", "text/url"]
 
     USER_AGENT = (
-        "Mozilla/5.0 (compatible; SecureBrainBox/1.0; "
-        "+https://github.com/ericrisco/securebrainbox)"
+        "Mozilla/5.0 (compatible; SecureBrainBox/1.0; +https://github.com/ericrisco/securebrainbox)"
     )
 
     @property
@@ -38,10 +37,7 @@ class URLProcessor(BaseProcessor):
         return mime_type in self.SUPPORTED_MIMES
 
     async def process(
-        self,
-        content: bytes,
-        filename: str | None = None,
-        **kwargs
+        self, content: bytes, filename: str | None = None, **kwargs
     ) -> ProcessedContent:
         """Extract content from URL.
 
@@ -72,7 +68,7 @@ class URLProcessor(BaseProcessor):
                     source=url,
                     source_type="url",
                     metadata=metadata,
-                    error="Could not fetch URL"
+                    error="Could not fetch URL",
                 )
 
             # Extract title first
@@ -93,7 +89,7 @@ class URLProcessor(BaseProcessor):
                     source=metadata.get("title") or url,
                     source_type="url",
                     metadata=metadata,
-                    error="Could not extract content from URL"
+                    error="Could not extract content from URL",
                 )
 
             # Add title to content
@@ -101,33 +97,20 @@ class URLProcessor(BaseProcessor):
                 text = f"# {metadata['title']}\n\n{text}"
 
             return ProcessedContent(
-                text=text,
-                source=metadata.get("title") or url,
-                source_type="url",
-                metadata=metadata
+                text=text, source=metadata.get("title") or url, source_type="url", metadata=metadata
             )
 
         except Exception as e:
             logger.error(f"URL processing error for {url}: {e}")
             return ProcessedContent(
-                text="",
-                source=url,
-                source_type="url",
-                metadata=metadata,
-                error=str(e)
+                text="", source=url, source_type="url", metadata=metadata, error=str(e)
             )
 
     async def _fetch_page(self, url: str) -> str | None:
         """Fetch webpage HTML."""
         try:
-            async with httpx.AsyncClient(
-                follow_redirects=True,
-                timeout=30.0
-            ) as client:
-                response = await client.get(
-                    url,
-                    headers={"User-Agent": self.USER_AGENT}
-                )
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                response = await client.get(url, headers={"User-Agent": self.USER_AGENT})
                 response.raise_for_status()
                 return response.text
         except Exception as e:
@@ -179,16 +162,27 @@ class URLProcessor(BaseProcessor):
             soup = BeautifulSoup(html, "html.parser")
 
             # Remove unwanted elements
-            for element in soup(["script", "style", "nav", "footer", "header",
-                                "aside", "form", "noscript", "iframe"]):
+            for element in soup(
+                [
+                    "script",
+                    "style",
+                    "nav",
+                    "footer",
+                    "header",
+                    "aside",
+                    "form",
+                    "noscript",
+                    "iframe",
+                ]
+            ):
                 element.decompose()
 
             # Try to find main content
             main_content = (
-                soup.find("main") or
-                soup.find("article") or
-                soup.find(class_=["content", "post", "entry", "article"]) or
-                soup.find("body")
+                soup.find("main")
+                or soup.find("article")
+                or soup.find(class_=["content", "post", "entry", "article"])
+                or soup.find("body")
             )
 
             if not main_content:

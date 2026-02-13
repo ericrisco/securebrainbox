@@ -92,8 +92,7 @@ class SecureBrain:
         try:
             # Initialize soul files from defaults
             soul_init = SoulInitializer(
-                data_dir=settings.data_dir,
-                defaults_dir=str(settings.defaults_dir)
+                data_dir=settings.data_dir, defaults_dir=str(settings.defaults_dir)
             )
             await soul_init.initialize()
 
@@ -144,10 +143,7 @@ class SecureBrain:
                 logger.debug("No relevant context found, using general response")
                 prompt = NO_CONTEXT_PROMPT.format(query=query)
                 system = self._build_system_prompt()
-                return await llm_client.generate(
-                    prompt=prompt,
-                    system=system
-                )
+                return await llm_client.generate(prompt=prompt, system=system)
 
             # 2. Build context from results
             context_parts = []
@@ -162,16 +158,10 @@ class SecureBrain:
             context = "\n\n---\n\n".join(context_parts)
 
             # 3. Generate response with context
-            prompt = RAG_PROMPT_TEMPLATE.format(
-                context=context,
-                query=query
-            )
+            prompt = RAG_PROMPT_TEMPLATE.format(context=context, query=query)
 
             system = self._build_system_prompt()
-            response = await llm_client.generate(
-                prompt=prompt,
-                system=system
-            )
+            response = await llm_client.generate(prompt=prompt, system=system)
 
             # 4. Add sources footer if we have sources
             if sources and len(sources) <= 5:
@@ -188,11 +178,7 @@ class SecureBrain:
             )
 
     async def index_text(
-        self,
-        text: str,
-        source: str,
-        source_type: str = "text",
-        metadata: dict | None = None
+        self, text: str, source: str, source_type: str = "text", metadata: dict | None = None
     ) -> int:
         """Index text content into the knowledge base.
 
@@ -223,15 +209,10 @@ class SecureBrain:
                 return 0
 
             # Index each chunk
-            chunk_dicts = [
-                {"content": chunk, "metadata": metadata}
-                for chunk in chunks
-            ]
+            chunk_dicts = [{"content": chunk, "metadata": metadata} for chunk in chunks]
 
             await vector_store.add_chunks_batch(
-                chunks=chunk_dicts,
-                source=source,
-                source_type=source_type
+                chunks=chunk_dicts, source=source, source_type=source_type
             )
 
             logger.info(f"Indexed {len(chunks)} chunks from {source}")
@@ -246,10 +227,7 @@ class SecureBrain:
             raise
 
     async def search(
-        self,
-        query: str,
-        limit: int = 5,
-        source_type: str | None = None
+        self, query: str, limit: int = 5, source_type: str | None = None
     ) -> list[SearchResult]:
         """Search the knowledge base.
 
@@ -266,11 +244,7 @@ class SecureBrain:
 
         logger.info(f"Searching: {query[:50]}...")
 
-        results = await vector_store.search(
-            query=query,
-            limit=limit,
-            source_type=source_type
-        )
+        results = await vector_store.search(query=query, limit=limit, source_type=source_type)
 
         return [
             SearchResult(
@@ -278,17 +252,12 @@ class SecureBrain:
                 source=r["source"],
                 source_type=r["source_type"],
                 relevance=1 - r.get("distance", 0),  # Convert distance to relevance
-                chunk_index=r.get("chunk_index", 0)
+                chunk_index=r.get("chunk_index", 0),
             )
             for r in results
         ]
 
-    async def _extract_and_add_entities(
-        self,
-        text: str,
-        source: str,
-        source_type: str
-    ) -> None:
+    async def _extract_and_add_entities(self, text: str, source: str, source_type: str) -> None:
         """Extract entities from text and add to knowledge graph.
 
         Args:
@@ -310,9 +279,7 @@ class SecureBrain:
 
             # Add document node
             knowledge_graph.add_document(
-                source=source,
-                source_type=source_type,
-                timestamp=int(time.time())
+                source=source, source_type=source_type, timestamp=int(time.time())
             )
 
             # Add entities and mentions
@@ -321,16 +288,14 @@ class SecureBrain:
                     name=entity.name,
                     entity_type=entity.type,
                     description=entity.description,
-                    source=source
+                    source=source,
                 )
                 knowledge_graph.add_mention(source, entity.name)
 
             # Add relations between entities
             for rel in result.relations:
                 knowledge_graph.add_relation(
-                    from_entity=rel.from_entity,
-                    to_entity=rel.to_entity,
-                    relation=rel.relation
+                    from_entity=rel.from_entity, to_entity=rel.to_entity, relation=rel.relation
                 )
 
             logger.info(
@@ -395,12 +360,7 @@ class SecureBrain:
             self.soul_context = await self.soul_loader.load()
             logger.info("Soul context reloaded")
 
-    def get_indexing_confirmation(
-        self,
-        source: str,
-        source_type: str,
-        chunk_count: int
-    ) -> str:
+    def get_indexing_confirmation(self, source: str, source_type: str, chunk_count: int) -> str:
         """Generate an indexing confirmation message.
 
         Args:
@@ -412,9 +372,7 @@ class SecureBrain:
             Formatted confirmation message.
         """
         return INDEXING_CONFIRMATION.format(
-            source=source,
-            source_type=source_type,
-            chunk_count=chunk_count
+            source=source, source_type=source_type, chunk_count=chunk_count
         )
 
 

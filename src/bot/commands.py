@@ -24,7 +24,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     if bootstrap.needs_bootstrap():
         # First run - generate identity and start onboarding
-        await update.message.reply_text("🚀 *First run detected!* Setting up...", parse_mode="Markdown")
+        await update.message.reply_text(
+            "🚀 *First run detected!* Setting up...", parse_mode="Markdown"
+        )
 
         try:
             # Generate unique identity
@@ -32,10 +34,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             bootstrap.write_identity(identity)
 
             # Get welcome message
-            welcome = onboarding.get_message_for_step(
-                OnboardingStep.WELCOME,
-                identity["name"]
-            )
+            welcome = onboarding.get_message_for_step(OnboardingStep.WELCOME, identity["name"])
 
             # Start onboarding flow
             onboarding.set_step(OnboardingStep.NAME)
@@ -47,8 +46,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             logger.error(f"Bootstrap failed: {e}")
             # Fallback to normal welcome
             await update.message.reply_text(
-                "❌ Setup failed. Please try /start again.",
-                parse_mode="Markdown"
+                "❌ Setup failed. Please try /start again.", parse_mode="Markdown"
             )
         return
 
@@ -59,6 +57,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         try:
             from src.agent.brain import agent
+
             if agent.soul_context and agent.soul_context.identity:
                 bot_name = agent.soul_context.identity.get("name", "Brain")
         except Exception:
@@ -107,6 +106,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if weaviate_ok:
         try:
             from src.agent.brain import agent
+
             stats = await agent.get_stats()
         except Exception as e:
             logger.warning(f"Could not get stats: {e}")
@@ -129,11 +129,13 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # Add troubleshooting hint if services are down
     if not ollama_ok or not weaviate_ok:
-        status_lines.extend([
-            "",
-            "⚠️ *Some services are down.*",
-            "Run `sbb status` to check Docker containers.",
-        ])
+        status_lines.extend(
+            [
+                "",
+                "⚠️ *Some services are down.*",
+                "Run `sbb status` to check Docker containers.",
+            ]
+        )
 
     status_text = "\n".join(status_lines)
     await update.message.reply_text(status_text, parse_mode="Markdown")
@@ -153,12 +155,13 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "• `/search what did I learn about Python?`\n"
             "• `/search notes from yesterday's meeting`\n"
             "• `/search machine learning concepts`",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
         return
 
     # Show typing indicator
     from telegram.constants import ChatAction
+
     await update.message.chat.send_action(ChatAction.TYPING)
 
     try:
@@ -172,38 +175,29 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 f"🔍 *Search:* _{query}_\n\n"
                 "No results found in your knowledge base.\n\n"
                 "_Try indexing some content first by sending documents or text._",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
             )
             return
 
         # Format results
-        result_lines = [
-            f"🔍 *Search:* _{query}_",
-            f"📊 Found {len(results)} relevant chunks:",
-            ""
-        ]
+        result_lines = [f"🔍 *Search:* _{query}_", f"📊 Found {len(results)} relevant chunks:", ""]
 
         for i, r in enumerate(results, 1):
             # Truncate content for display
             content_preview = r.content[:150] + "..." if len(r.content) > 150 else r.content
             relevance_pct = int(r.relevance * 100)
 
-            result_lines.extend([
-                f"*{i}. {r.source}* ({relevance_pct}% match)",
-                f"_{content_preview}_",
-                ""
-            ])
+            result_lines.extend(
+                [f"*{i}. {r.source}* ({relevance_pct}% match)", f"_{content_preview}_", ""]
+            )
 
-        await update.message.reply_text(
-            "\n".join(result_lines),
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("\n".join(result_lines), parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Search error: {e}")
         await update.message.reply_text(
             "❌ Search failed. Please check if services are running with `/status`.",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
 
 
@@ -212,17 +206,18 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Handle /stats command - show knowledge base statistics."""
     try:
         from src.agent.brain import agent
+
         stats = await agent.get_stats()
 
         stats_text = f"""
 📊 *Knowledge Base Statistics*
 
 *Vector Store:*
-🧩 Indexed chunks: {stats.get('total_chunks', 0)}
+🧩 Indexed chunks: {stats.get("total_chunks", 0)}
 
 *Knowledge Graph:*
-🔗 Entities: {stats.get('entities', 0)}
-↔️ Relations: {stats.get('relations', 0)}
+🔗 Entities: {stats.get("entities", 0)}
+↔️ Relations: {stats.get("relations", 0)}
 
 _Index more content to build your second brain._
         """
@@ -232,8 +227,7 @@ _Index more content to build your second brain._
     except Exception as e:
         logger.error(f"Stats error: {e}")
         await update.message.reply_text(
-            "❌ Could not get statistics. Please check `/status`.",
-            parse_mode="Markdown"
+            "❌ Could not get statistics. Please check `/status`.", parse_mode="Markdown"
         )
 
 
@@ -251,11 +245,12 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             "• `/graph OpenAI`\n"
             "• `/graph machine learning`\n\n"
             "_Explore connections between concepts in your knowledge base._",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
         return
 
     from telegram.constants import ChatAction
+
     await update.message.chat.send_action(ChatAction.TYPING)
 
     try:
@@ -267,7 +262,7 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             await update.message.reply_text(
                 f"🔍 Entity `{entity}` not found in knowledge graph.\n\n"
                 "_Index more content to build your graph._",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
             )
             return
 
@@ -288,10 +283,7 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         if related:
             lines.append(f"*Connected entities ({len(related)}):*")
-            visualization = graph_helper.format_graph_visualization(
-                entity_info["name"],
-                related
-            )
+            visualization = graph_helper.format_graph_visualization(entity_info["name"], related)
             lines.append(f"```\n{visualization}\n```")
         else:
             lines.append("_No connections found._")
@@ -300,16 +292,12 @@ async def graph_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             lines.append("")
             lines.append(f"*Mentioned in {len(docs)} document(s)*")
 
-        await update.message.reply_text(
-            "\n".join(lines),
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Graph error: {e}")
         await update.message.reply_text(
-            "❌ Could not explore graph. Please check `/status`.",
-            parse_mode="Markdown"
+            "❌ Could not explore graph. Please check `/status`.", parse_mode="Markdown"
         )
 
 
@@ -327,11 +315,12 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             "• `/ideas productivity`\n"
             "• `/ideas startup`\n\n"
             "_I'll find unexpected connections in your knowledge and generate creative ideas!_",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
         return
 
     from telegram.constants import ChatAction
+
     await update.message.chat.send_action(ChatAction.TYPING)
 
     try:
@@ -340,7 +329,7 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await update.message.reply_text(
             f"💡 Generating ideas about *{topic}*...\n"
             "_Exploring your knowledge graph for unexpected connections._",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
 
         ideas = await graph_helper.generate_ideas(topic, count=3)
@@ -349,36 +338,31 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             await update.message.reply_text(
                 f"🤔 Couldn't find enough connections for *{topic}*.\n\n"
                 "_Try indexing more content to build richer connections._",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
             )
             return
 
         # Format ideas
-        lines = [
-            f"💡 *Crazy Ideas about \"{topic}\"*",
-            ""
-        ]
+        lines = [f'💡 *Crazy Ideas about "{topic}"*', ""]
 
         for i, idea in enumerate(ideas, 1):
             path_str = " → ".join(idea.path)
-            lines.extend([
-                f"*{i}.* 🔗 `{path_str}`",
-                f"💭 _{idea.idea}_",
-            ])
+            lines.extend(
+                [
+                    f"*{i}.* 🔗 `{path_str}`",
+                    f"💭 _{idea.idea}_",
+                ]
+            )
             if idea.explanation:
                 lines.append(f"📝 {idea.explanation}")
             lines.append("")
 
-        await update.message.reply_text(
-            "\n".join(lines),
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Ideas error: {e}")
         await update.message.reply_text(
-            "❌ Could not generate ideas. Please check `/status`.",
-            parse_mode="Markdown"
+            "❌ Could not generate ideas. Please check `/status`.", parse_mode="Markdown"
         )
 
 
@@ -391,10 +375,7 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     from telegram.constants import ChatAction
 
-    await update.message.reply_text(
-        "📤 Exporting your knowledge base...",
-        parse_mode="Markdown"
-    )
+    await update.message.reply_text("📤 Exporting your knowledge base...", parse_mode="Markdown")
     await update.message.chat.send_action(ChatAction.UPLOAD_DOCUMENT)
 
     try:
@@ -420,8 +401,10 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         # Create JSON file
         json_content = json.dumps(export_data, indent=2, ensure_ascii=False)
-        file_bytes = io.BytesIO(json_content.encode('utf-8'))
-        file_bytes.name = f"securebrainbox_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        file_bytes = io.BytesIO(json_content.encode("utf-8"))
+        file_bytes.name = (
+            f"securebrainbox_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        )
 
         await update.message.reply_document(
             document=file_bytes,
@@ -432,14 +415,13 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 f"🔗 Entities: {stats.get('entities', 0)}\n"
                 f"↔️ Relations: {stats.get('relations', 0)}"
             ),
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
 
     except Exception as e:
         logger.error(f"Export error: {e}")
         await update.message.reply_text(
-            "❌ Export failed. Please check `/status`.",
-            parse_mode="Markdown"
+            "❌ Export failed. Please check `/status`.", parse_mode="Markdown"
         )
 
 
@@ -451,8 +433,7 @@ async def identity_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         if not agent.soul_context or not agent.soul_context.identity:
             await update.message.reply_text(
-                "🧠 *Identity*\n\n_No identity configured yet._",
-                parse_mode="Markdown"
+                "🧠 *Identity*\n\n_No identity configured yet._", parse_mode="Markdown"
             )
             return
 
@@ -462,17 +443,11 @@ async def identity_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if len(identity) > 3000:
             identity = identity[:3000] + "\n\n_...truncated_"
 
-        await update.message.reply_text(
-            f"🧠 *Bot Identity*\n\n{identity}",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text(f"🧠 *Bot Identity*\n\n{identity}", parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Identity error: {e}")
-        await update.message.reply_text(
-            "❌ Could not load identity.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("❌ Could not load identity.", parse_mode="Markdown")
 
 
 @log_command
@@ -490,7 +465,7 @@ async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 await update.message.reply_text(
                     "👤 *User Profile*\n\n_No profile configured yet._\n\n"
                     "Edit `USER.md` to add your profile.",
-                    parse_mode="Markdown"
+                    parse_mode="Markdown",
                 )
                 return
 
@@ -501,8 +476,7 @@ async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 user_content = user_content[:3000] + "\n\n_...truncated_"
 
             await update.message.reply_text(
-                f"👤 *User Profile*\n\n{user_content}",
-                parse_mode="Markdown"
+                f"👤 *User Profile*\n\n{user_content}", parse_mode="Markdown"
             )
         else:
             # Show help for editing
@@ -510,15 +484,12 @@ async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 "👤 *User Profile*\n\n"
                 "To update your profile, edit the `USER.md` file in your data directory.\n\n"
                 f"Location: `{settings.data_dir}/USER.md`",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
             )
 
     except Exception as e:
         logger.error(f"User error: {e}")
-        await update.message.reply_text(
-            "❌ Could not load user profile.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("❌ Could not load user profile.", parse_mode="Markdown")
 
 
 @log_command
@@ -535,7 +506,7 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "🧠 *Long-term Memory*\n\n_No memories stored yet._\n\n"
                 "Memories are automatically saved from conversations "
                 "or you can edit `MEMORY.md` directly.",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
             )
             return
 
@@ -544,16 +515,12 @@ async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             memory_content = memory_content[:3500] + "\n\n_...truncated_"
 
         await update.message.reply_text(
-            f"🧠 *Long-term Memory*\n\n{memory_content}",
-            parse_mode="Markdown"
+            f"🧠 *Long-term Memory*\n\n{memory_content}", parse_mode="Markdown"
         )
 
     except Exception as e:
         logger.error(f"Memory error: {e}")
-        await update.message.reply_text(
-            "❌ Could not load memory.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("❌ Could not load memory.", parse_mode="Markdown")
 
 
 @log_command
@@ -567,8 +534,7 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         if not log_content or len(log_content.strip()) < 20:
             await update.message.reply_text(
-                "📅 *Today's Log*\n\n_No entries yet today._",
-                parse_mode="Markdown"
+                "📅 *Today's Log*\n\n_No entries yet today._", parse_mode="Markdown"
             )
             return
 
@@ -576,17 +542,11 @@ async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if len(log_content) > 3500:
             log_content = log_content[:3500] + "\n\n_...truncated_"
 
-        await update.message.reply_text(
-            f"📅 *Today's Log*\n\n{log_content}",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text(f"📅 *Today's Log*\n\n{log_content}", parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Today log error: {e}")
-        await update.message.reply_text(
-            "❌ Could not load today's log.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("❌ Could not load today's log.", parse_mode="Markdown")
 
 
 @log_command
@@ -603,14 +563,18 @@ async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "⚔️ *Skills*\n\n_No skills installed._\n\n"
                 "Add skills to `data/skills/` directory.\n"
                 "Each skill needs a `SKILL.md` file.",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
             )
             return
 
         lines = [f"⚔️ *Available Skills* ({len(skills)})\n"]
 
         for skill in skills:
-            desc = skill["description"][:100] + "..." if len(skill["description"]) > 100 else skill["description"]
+            desc = (
+                skill["description"][:100] + "..."
+                if len(skill["description"]) > 100
+                else skill["description"]
+            )
             lines.append(f"• **{skill['name']}**")
             lines.append(f"  _{desc}_\n")
 
@@ -618,10 +582,7 @@ async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     except Exception as e:
         logger.error(f"Skills error: {e}")
-        await update.message.reply_text(
-            "❌ Could not load skills.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("❌ Could not load skills.", parse_mode="Markdown")
 
 
 @log_command
@@ -636,7 +597,7 @@ async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             "*Examples:*\n"
             "• `/remember User prefers dark mode`\n"
             "• `/remember Project deadline is March 15`",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
         return
 
@@ -647,26 +608,19 @@ async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await manager.append_to_memory("Notes", content)
 
         await update.message.reply_text(
-            f"✅ *Saved to memory!*\n\n_{content}_",
-            parse_mode="Markdown"
+            f"✅ *Saved to memory!*\n\n_{content}_", parse_mode="Markdown"
         )
 
     except Exception as e:
         logger.error(f"Remember error: {e}")
-        await update.message.reply_text(
-            "❌ Could not save to memory.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text("❌ Could not save to memory.", parse_mode="Markdown")
 
 
 async def _check_ollama() -> bool:
     """Check if Ollama service is healthy."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{settings.ollama_host}/api/tags",
-                timeout=5.0
-            )
+            response = await client.get(f"{settings.ollama_host}/api/tags", timeout=5.0)
             return response.status_code == 200
     except Exception as e:
         logger.warning(f"Ollama health check failed: {e}")
@@ -678,8 +632,7 @@ async def _check_weaviate() -> bool:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{settings.weaviate_host}/v1/.well-known/ready",
-                timeout=5.0
+                f"{settings.weaviate_host}/v1/.well-known/ready", timeout=5.0
             )
             return response.status_code == 200
     except Exception as e:

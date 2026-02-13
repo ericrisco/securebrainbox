@@ -33,11 +33,7 @@ class TestSoulContext:
         """Test to_system_prompt formats sections."""
         from src.soul.loader import SoulContext
 
-        ctx = SoulContext(
-            soul="Be helpful",
-            identity="I am Brain",
-            user="User is Eric"
-        )
+        ctx = SoulContext(soul="Be helpful", identity="I am Brain", user="User is Eric")
         result = ctx.to_system_prompt()
 
         assert "# Identity" in result

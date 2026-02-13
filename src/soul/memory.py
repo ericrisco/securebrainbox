@@ -33,11 +33,7 @@ class MemoryManager:
         today = datetime.now().strftime("%Y-%m-%d")
         return self.memory_dir / f"{today}.md"
 
-    async def append_log(
-        self,
-        content: str,
-        section: str | None = None
-    ) -> None:
+    async def append_log(self, content: str, section: str | None = None) -> None:
         """Append entry to today's log.
 
         Args:
@@ -113,12 +109,7 @@ class MemoryManager:
             return path.read_text(encoding="utf-8")
         return ""
 
-    async def update_memory_section(
-        self,
-        section: str,
-        content: str,
-        append: bool = False
-    ) -> None:
+    async def update_memory_section(self, section: str, content: str, append: bool = False) -> None:
         """Update a section in MEMORY.md.
 
         Args:
@@ -262,6 +253,7 @@ def get_memory_manager(data_dir: str = None) -> MemoryManager:
 
     if memory_manager is None:
         from src.config import settings
+
         memory_manager = MemoryManager(data_dir or settings.data_dir)
 
     return memory_manager

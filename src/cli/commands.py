@@ -13,11 +13,7 @@ console = Console()
 def get_compose_command() -> list[str]:
     """Get the appropriate docker compose command."""
     try:
-        result = subprocess.run(
-            ["docker", "compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=10)
         if result.returncode == 0:
             return ["docker", "compose"]
     except Exception:

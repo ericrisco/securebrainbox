@@ -39,11 +39,7 @@ class ImageProcessor(BaseProcessor):
         return mime_type in self.SUPPORTED_MIMES
 
     async def process(
-        self,
-        content: bytes,
-        filename: str | None = None,
-        caption: str | None = None,
-        **kwargs
+        self, content: bytes, filename: str | None = None, caption: str | None = None, **kwargs
     ) -> ProcessedContent:
         """Extract description from image using vision model.
 
@@ -92,14 +88,11 @@ class ImageProcessor(BaseProcessor):
                     source=filename or "image",
                     source_type="image",
                     metadata=metadata,
-                    error="Could not generate image description"
+                    error="Could not generate image description",
                 )
 
             return ProcessedContent(
-                text=text,
-                source=filename or "image",
-                source_type="image",
-                metadata=metadata
+                text=text, source=filename or "image", source_type="image", metadata=metadata
             )
 
         except Exception as e:
@@ -109,14 +102,10 @@ class ImageProcessor(BaseProcessor):
                 source=filename or "image",
                 source_type="image",
                 metadata=metadata,
-                error=str(e) if not caption else None
+                error=str(e) if not caption else None,
             )
 
-    async def _describe_image(
-        self,
-        b64_image: str,
-        caption: str | None = None
-    ) -> str:
+    async def _describe_image(self, b64_image: str, caption: str | None = None) -> str:
         """Get image description using vision model.
 
         Args:
@@ -140,11 +129,7 @@ class ImageProcessor(BaseProcessor):
             # Try using vision capabilities
             response = client.chat(
                 model=settings.ollama_model,
-                messages=[{
-                    "role": "user",
-                    "content": prompt,
-                    "images": [b64_image]
-                }]
+                messages=[{"role": "user", "content": prompt, "images": [b64_image]}],
             )
 
             return response.get("message", {}).get("content", "")

@@ -1,6 +1,5 @@
 """SecureBrainBox CLI."""
 
-
 import click
 from rich.console import Console
 

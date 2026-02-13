@@ -189,7 +189,7 @@ class TestBotApp:
         """Test that application creation fails without token."""
         from src.bot.app import create_application
 
-        with patch('src.bot.app.settings') as mock_settings:
+        with patch("src.bot.app.settings") as mock_settings:
             mock_settings.telegram_bot_token = ""
 
             with pytest.raises(ValueError, match="TELEGRAM_BOT_TOKEN"):
@@ -199,7 +199,7 @@ class TestBotApp:
         """Test that application is created with valid token."""
         from src.bot.app import create_application
 
-        with patch('src.bot.app.settings') as mock_settings:
+        with patch("src.bot.app.settings") as mock_settings:
             mock_settings.telegram_bot_token = "fake:token"
 
             # Should not raise

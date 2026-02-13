@@ -44,9 +44,7 @@ class TestMemoryManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = MemoryManager(tmpdir)
 
-            asyncio.get_event_loop().run_until_complete(
-                manager.append_log("Entry with time")
-            )
+            asyncio.get_event_loop().run_until_complete(manager.append_log("Entry with time"))
 
             content = manager.get_today_log_path().read_text()
 
@@ -61,13 +59,9 @@ class TestMemoryManager:
             manager = MemoryManager(tmpdir)
 
             # Create today's log
-            asyncio.get_event_loop().run_until_complete(
-                manager.append_log("Today's entry")
-            )
+            asyncio.get_event_loop().run_until_complete(manager.append_log("Today's entry"))
 
-            logs = asyncio.get_event_loop().run_until_complete(
-                manager.get_recent_logs(days=2)
-            )
+            logs = asyncio.get_event_loop().run_until_complete(manager.get_recent_logs(days=2))
 
             assert len(logs) >= 1
             assert "Today's entry" in logs[0]
@@ -79,9 +73,7 @@ class TestMemoryManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = MemoryManager(tmpdir)
 
-            memory = asyncio.get_event_loop().run_until_complete(
-                manager.get_memory()
-            )
+            memory = asyncio.get_event_loop().run_until_complete(manager.get_memory())
 
             assert memory == ""
 
@@ -130,9 +122,7 @@ class TestMemoryManager:
             manager = MemoryManager(tmpdir)
 
             # Create a log
-            asyncio.get_event_loop().run_until_complete(
-                manager.append_log("Entry")
-            )
+            asyncio.get_event_loop().run_until_complete(manager.append_log("Entry"))
 
             dates = manager.get_log_dates()
 

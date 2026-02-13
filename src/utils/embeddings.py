@@ -52,10 +52,7 @@ class EmbeddingClient:
             Exception: If embedding generation fails.
         """
         try:
-            response = self.client.embeddings(
-                model=self.model,
-                prompt=text
-            )
+            response = self.client.embeddings(model=self.model, prompt=text)
             embedding = response.get("embedding", [])
             logger.debug(f"Generated embedding of dimension {len(embedding)}")
             return embedding
@@ -89,9 +86,8 @@ class EmbeddingClient:
             Dimension of embeddings for the current model.
         """
         import asyncio
-        embedding = asyncio.get_event_loop().run_until_complete(
-            self.embed("test")
-        )
+
+        embedding = asyncio.get_event_loop().run_until_complete(self.embed("test"))
         return len(embedding)
 
 

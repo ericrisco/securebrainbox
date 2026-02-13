@@ -63,7 +63,7 @@ class TestSecureBrain:
             content="This is test content",
             source="test.txt",
             source_type="text",
-            metadata={"author": "test"}
+            metadata={"author": "test"},
         )
 
         assert isinstance(result, IndexedContent)
@@ -100,7 +100,7 @@ class TestIndexedContent:
             source_type="pdf",
             chunk_count=5,
             indexed_at=datetime.now(),
-            metadata={"pages": 10}
+            metadata={"pages": 10},
         )
 
         assert content.content_id == "test123"
