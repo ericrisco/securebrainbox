@@ -105,6 +105,7 @@ HELP_TEXT = """📚 *SecureBrainBox Commands*
 *Knowledge Base:*
 /search <query> - Search your knowledge
 /stats - Show knowledge base statistics
+/export - Export knowledge to file
 
 *Knowledge Graph:*
 /graph <entity> - Explore entity connections
