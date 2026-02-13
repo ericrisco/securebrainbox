@@ -1,10 +1,8 @@
-"""Main agent brain - orchestrates all AI operations.
+"""Main agent brain with RAG capabilities.
 
-This module contains the SecureBrain class which is the central
-orchestrator for processing queries, indexing content, and
-generating responses.
-
-Full RAG implementation coming in Phase 2.
+This module contains the SecureBrain class which orchestrates all AI
+operations including query processing, content indexing, and response
+generation using RAG (Retrieval-Augmented Generation).
 """
 
 import logging
@@ -13,6 +11,15 @@ from datetime import datetime
 from typing import Optional
 
 from src.config import settings
+from src.storage.vectors import vector_store
+from src.utils.llm import llm_client
+from src.utils.chunking import text_chunker
+from src.agent.prompts import (
+    SYSTEM_PROMPT,
+    RAG_PROMPT_TEMPLATE,
+    NO_CONTEXT_PROMPT,
+    INDEXING_CONFIRMATION,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +30,30 @@ class IndexedContent:
     
     content_id: str
     source: str
-    source_type: str  # text, pdf, image, audio, url
+    source_type: str
     chunk_count: int
     indexed_at: datetime
     metadata: dict
+
+
+@dataclass 
+class SearchResult:
+    """Represents a search result from the knowledge base."""
+    
+    content: str
+    source: str
+    source_type: str
+    relevance: float
+    chunk_index: int
 
 
 class SecureBrain:
     """Main agent that orchestrates all AI operations.
     
     This is the central brain of SecureBrainBox. It handles:
-    - Processing user queries (RAG)
-    - Indexing new content
-    - Managing the knowledge base
+    - Processing user queries using RAG
+    - Indexing new content into the knowledge base
+    - Searching the knowledge base
     - Generating creative ideas
     
     Attributes:
@@ -45,15 +63,13 @@ class SecureBrain:
     def __init__(self):
         """Initialize the SecureBrain agent."""
         self.initialized = False
-        self._ollama_client = None
-        self._weaviate_client = None
         logger.info("SecureBrain instance created")
     
     async def initialize(self) -> None:
         """Initialize connections to AI services.
         
-        This sets up connections to Ollama and Weaviate.
-        Called automatically on first query if not already initialized.
+        Sets up connections to Weaviate vector store.
+        Called automatically on first operation if not already initialized.
         """
         if self.initialized:
             return
@@ -61,22 +77,25 @@ class SecureBrain:
         logger.info("Initializing SecureBrain...")
         logger.info(f"  Ollama: {settings.ollama_host}")
         logger.info(f"  Weaviate: {settings.weaviate_host}")
-        logger.info(f"  Model: {settings.ollama_model}")
+        logger.info(f"  LLM Model: {settings.ollama_model}")
+        logger.info(f"  Embed Model: {settings.ollama_embed_model}")
         
-        # TODO: Initialize Ollama client (Phase 2)
-        # self._ollama_client = ...
-        
-        # TODO: Initialize Weaviate client (Phase 2)
-        # self._weaviate_client = ...
-        
-        self.initialized = True
-        logger.info("SecureBrain initialized successfully")
+        try:
+            # Connect to vector store
+            await vector_store.connect()
+            
+            self.initialized = True
+            logger.info("SecureBrain initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize SecureBrain: {e}")
+            raise
     
     async def process_query(self, query: str) -> str:
-        """Process a user query and return a response.
+        """Process a user query using RAG.
         
-        This is the main entry point for user queries. In Phase 2,
-        this will implement full RAG with vector search.
+        Searches the knowledge base for relevant context, then uses
+        the LLM to generate a response based on that context.
         
         Args:
             query: The user's question or message.
@@ -89,100 +108,188 @@ class SecureBrain:
         
         logger.info(f"Processing query: {query[:50]}...")
         
-        # Phase 1: Simple echo response
-        # Phase 2: Full RAG implementation
-        
-        response = (
-            f"🧠 *Received your message:*\n"
-            f"_{query}_\n\n"
-            "I'm SecureBrainBox, your private AI assistant.\n\n"
-            "📋 *Current capabilities:*\n"
-            "• Receive text messages ✅\n"
-            "• Acknowledge documents, images, audio ✅\n"
-            "• Full AI responses (Phase 2) ⏳\n"
-            "• Document indexing (Phase 3) ⏳\n"
-            "• Knowledge graph (Phase 4) ⏳\n\n"
-            "_Stay tuned! Real AI-powered responses coming soon._"
-        )
-        
-        return response
+        try:
+            # 1. Search for relevant context
+            results = await vector_store.search(query, limit=5)
+            
+            if not results:
+                # No context found - use the no-context prompt
+                logger.debug("No relevant context found, using general response")
+                prompt = NO_CONTEXT_PROMPT.format(query=query)
+                return await llm_client.generate(
+                    prompt=prompt,
+                    system=SYSTEM_PROMPT
+                )
+            
+            # 2. Build context from results
+            context_parts = []
+            sources = set()
+            
+            for r in results:
+                source_name = r.get("source", "unknown")
+                content = r.get("content", "")
+                context_parts.append(f"[Source: {source_name}]\n{content}")
+                sources.add(source_name)
+            
+            context = "\n\n---\n\n".join(context_parts)
+            
+            # 3. Generate response with context
+            prompt = RAG_PROMPT_TEMPLATE.format(
+                context=context,
+                query=query
+            )
+            
+            response = await llm_client.generate(
+                prompt=prompt,
+                system=SYSTEM_PROMPT
+            )
+            
+            # 4. Add sources footer if we have sources
+            if sources and len(sources) <= 5:
+                source_list = ", ".join(f"`{s}`" for s in sorted(sources))
+                response += f"\n\n📚 _Sources: {source_list}_"
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error processing query: {e}")
+            return (
+                "❌ Sorry, I encountered an error processing your question. "
+                "Please check if the AI services are running with `/status`."
+            )
     
-    async def index_content(
+    async def index_text(
         self,
-        content: str,
+        text: str,
         source: str,
-        source_type: str,
+        source_type: str = "text",
         metadata: Optional[dict] = None
-    ) -> IndexedContent:
-        """Index content into the knowledge base.
+    ) -> int:
+        """Index text content into the knowledge base.
         
-        This will chunk the content, generate embeddings, and store
-        in Weaviate. Full implementation in Phase 2.
+        Chunks the text and stores each chunk with its embedding
+        in the vector store.
         
         Args:
-            content: The text content to index.
+            text: The text content to index.
             source: Source identifier (filename, URL, etc.).
             source_type: Type of content (text, pdf, image, audio, url).
             metadata: Optional additional metadata.
             
         Returns:
-            IndexedContent object with indexing details.
+            Number of chunks indexed.
         """
         if not self.initialized:
             await self.initialize()
         
         logger.info(f"Indexing content from {source} ({source_type})")
-        logger.info(f"  Content length: {len(content)} chars")
+        logger.info(f"  Content length: {len(text)} chars")
         
-        # Placeholder - will be implemented in Phase 2
-        # 1. Chunk the content
-        # 2. Generate embeddings for each chunk
-        # 3. Store in Weaviate with metadata
-        # 4. Extract entities for knowledge graph
-        
-        result = IndexedContent(
-            content_id=f"placeholder_{datetime.now().timestamp()}",
-            source=source,
-            source_type=source_type,
-            chunk_count=0,  # Will be calculated
-            indexed_at=datetime.now(),
-            metadata=metadata or {}
-        )
-        
-        logger.info(f"Content indexed (placeholder): {result.content_id}")
-        
-        return result
+        try:
+            # Chunk the text
+            chunks = text_chunker.chunk(text)
+            
+            if not chunks:
+                logger.warning(f"No chunks generated from {source}")
+                return 0
+            
+            # Index each chunk
+            chunk_dicts = [
+                {"content": chunk, "metadata": metadata}
+                for chunk in chunks
+            ]
+            
+            await vector_store.add_chunks_batch(
+                chunks=chunk_dicts,
+                source=source,
+                source_type=source_type
+            )
+            
+            logger.info(f"Indexed {len(chunks)} chunks from {source}")
+            return len(chunks)
+            
+        except Exception as e:
+            logger.error(f"Error indexing content: {e}")
+            raise
     
-    async def search(self, query: str, limit: int = 5) -> list[dict]:
+    async def search(
+        self,
+        query: str,
+        limit: int = 5,
+        source_type: Optional[str] = None
+    ) -> list[SearchResult]:
         """Search the knowledge base.
         
         Args:
             query: Search query string.
             limit: Maximum number of results.
+            source_type: Filter by source type (optional).
             
         Returns:
-            List of search results with content and metadata.
+            List of SearchResult objects.
         """
         if not self.initialized:
             await self.initialize()
         
-        logger.info(f"Searching: {query}")
+        logger.info(f"Searching: {query[:50]}...")
         
-        # Placeholder - will be implemented in Phase 2
-        return []
+        results = await vector_store.search(
+            query=query,
+            limit=limit,
+            source_type=source_type
+        )
+        
+        return [
+            SearchResult(
+                content=r["content"],
+                source=r["source"],
+                source_type=r["source_type"],
+                relevance=1 - r.get("distance", 0),  # Convert distance to relevance
+                chunk_index=r.get("chunk_index", 0)
+            )
+            for r in results
+        ]
     
     async def get_stats(self) -> dict:
         """Get knowledge base statistics.
         
         Returns:
-            Dictionary with stats like document count, chunk count, etc.
+            Dictionary with stats like chunk count.
         """
-        # Placeholder - will be implemented in Phase 2
-        return {
-            "documents": 0,
-            "chunks": 0,
-            "last_indexed": None,
-        }
+        if not self.initialized:
+            await self.initialize()
+        
+        try:
+            stats = await vector_store.get_stats()
+            return {
+                "total_chunks": stats.get("total_chunks", 0),
+                "collection": stats.get("collection", "Knowledge"),
+            }
+        except Exception as e:
+            logger.error(f"Error getting stats: {e}")
+            return {"total_chunks": 0, "error": str(e)}
+    
+    def get_indexing_confirmation(
+        self,
+        source: str,
+        source_type: str,
+        chunk_count: int
+    ) -> str:
+        """Generate an indexing confirmation message.
+        
+        Args:
+            source: Source that was indexed.
+            source_type: Type of content.
+            chunk_count: Number of chunks created.
+            
+        Returns:
+            Formatted confirmation message.
+        """
+        return INDEXING_CONFIRMATION.format(
+            source=source,
+            source_type=source_type,
+            chunk_count=chunk_count
+        )
 
 
 # Global agent instance

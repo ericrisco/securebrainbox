@@ -1,4 +1,4 @@
-"""Telegram bot message handlers."""
+"""Telegram bot message handlers with RAG integration."""
 
 import logging
 import re
@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming plain text messages.
     
-    This processes user queries and returns AI-generated responses.
+    Processes user messages as queries against the knowledge base
+    using RAG (Retrieval-Augmented Generation).
     """
     user_message = update.message.text
     user = update.effective_user
@@ -28,8 +29,40 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.chat.send_action(ChatAction.TYPING)
     
     try:
-        # Process with agent
-        response = await agent.process_query(user_message)
+        # Check if user wants to explicitly index content
+        # Format: "INDEX: content to index"
+        if user_message.upper().startswith("INDEX:"):
+            content = user_message[6:].strip()
+            
+            if not content:
+                await update.message.reply_text(
+                    "⚠️ Please provide content to index.\n\n"
+                    "*Usage:* `INDEX: your content here`",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            # Index the content
+            source = f"telegram_{update.message.message_id}"
+            chunk_count = await agent.index_text(
+                text=content,
+                source=source,
+                source_type="text",
+                metadata={
+                    "user_id": user.id,
+                    "chat_id": chat_id,
+                    "message_id": update.message.message_id
+                }
+            )
+            
+            response = agent.get_indexing_confirmation(
+                source="Telegram message",
+                source_type="text",
+                chunk_count=chunk_count
+            )
+        else:
+            # Process as a query
+            response = await agent.process_query(user_message)
         
         # Send response
         await update.message.reply_text(response, parse_mode="Markdown")
@@ -37,8 +70,9 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         await update.message.reply_text(
-            "❌ Sorry, I encountered an error processing your message. "
-            "Please try again."
+            "❌ Sorry, I encountered an error. "
+            "Please try again or check `/status`.",
+            parse_mode="Markdown"
         )
 
 
@@ -74,7 +108,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
     
-    # Placeholder response
+    # Placeholder response - will process in Phase 3
     await update.message.reply_text(
         f"📄 *Document received:* `{file_name}`\n"
         f"📦 Size: {_format_size(file_size)}\n\n"
@@ -151,11 +185,19 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     url_list = "\n".join([f"• `{url}`" for url in urls])
     
     await update.message.reply_text(
-        f"🔗 *URL{'s' if len(urls) > 1 else ''} received:*\n{url_list}\n\n"
+        f"🔗 *URL{'s' if len(urls) > 1 else ''} detected:*\n{url_list}\n\n"
         "⏳ Web content extraction coming in Phase 3.\n"
-        "I'll be able to read and index web pages soon!",
+        "I'll be able to read and index web pages soon!\n\n"
+        "_For now, I'll process your message as a query:_",
         parse_mode="Markdown"
     )
+    
+    # Also process the text part as a query (excluding URLs)
+    text_without_urls = re.sub(url_pattern, '', text).strip()
+    if text_without_urls:
+        await update.message.chat.send_action(ChatAction.TYPING)
+        response = await agent.process_query(text_without_urls)
+        await update.message.reply_text(response, parse_mode="Markdown")
 
 
 def _format_size(size_bytes: int) -> str:
