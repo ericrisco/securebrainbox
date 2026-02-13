@@ -1,131 +1,253 @@
 # 🧠 SecureBrainBox
 
-> Your private second brain that never forgets and always connects the dots.
+> Your private second brain that never forgets — 100% local, 100% yours.
 
-**100% local AI agent** for Telegram with vector + graph memory. Send anything (text, PDFs, images, audio, URLs) and query your personal knowledge base using natural language.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+
+SecureBrainBox is a **100% local** AI-powered knowledge management system for Telegram. Send documents, voice notes, URLs, and images — it remembers everything and connects the dots.
+
+**No cloud. No subscriptions. Your data never leaves your machine.**
+
+---
 
 ## ✨ Features
 
-- 🔒 **100% Private** - Everything runs locally, no cloud services
-- 📱 **Telegram Interface** - Access your brain from anywhere
-- 📄 **Multi-format** - PDFs, images, audio, URLs, text
-- 🔍 **Semantic Search** - Find information by meaning, not just keywords
-- 🕸️ **Knowledge Graph** - Connect ideas across documents
-- 💡 **Idea Generator** - Get creative suggestions by connecting dots
+🔒 **100% Local** — Everything runs on your machine. No API calls to external services.
+
+📄 **Multi-format Indexing** — PDFs, images, voice messages, URLs, plain text.
+
+🔍 **Semantic Search** — Find anything by meaning, not just keywords.
+
+🔗 **Knowledge Graph** — Automatically extracts entities and relationships.
+
+💡 **Idea Generation** — Discovers unexpected connections in your knowledge.
+
+🤖 **Telegram Bot** — Simple chat interface from any device.
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Docker & Docker Compose
-- Python 3.11+
-- Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
-- ~8GB RAM recommended
+- 8GB+ RAM recommended
+- NVIDIA GPU (optional, for faster inference)
 
-### Install (Choose One)
+### Installation
 
 ```bash
-# Option 1: curl (Mac/Linux) ⭐
+# Option 1: curl installer
 curl -sSL https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.sh | bash
 
-# Option 2: Homebrew (Mac)
-brew install ericrisco/tap/securebrainbox
-
-# Option 3: npx (Node.js)
-npx securebrainbox install
-
-# Option 4: pip (Python)
+# Option 2: pip
 pip install securebrainbox
+sbb install
+
+# Option 3: Manual
+git clone https://github.com/ericrisco/securebrainbox.git
+cd securebrainbox
+cp .env.example .env
+# Edit .env with your Telegram bot token
+docker compose up -d
 ```
 
-Then run the setup wizard:
+### Configuration
+
+1. Create a Telegram bot via [@BotFather](https://t.me/botfather)
+2. Copy the token to `.env`:
+
+```env
+TELEGRAM_BOT_TOKEN=your_token_here
+ALLOWED_USERS=your_telegram_id  # Optional: restrict access
+```
+
+3. Start the services:
 
 ```bash
-sbb install
+sbb start
+# or
+docker compose up -d
 ```
 
-The wizard guides you through:
-1. ✅ Docker check
-2. 🤖 Telegram bot setup  
-3. ⚙️ Configuration
-4. 🚀 Start services
-5. 📦 Download AI models (~4GB)
+4. Send `/start` to your bot!
+
+---
+
+## 📖 Usage
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `sbb install` | Run setup wizard |
-| `sbb start` | Start the bot |
-| `sbb stop` | Stop all services |
-| `sbb restart` | Restart services |
-| `sbb status` | Check service status |
-| `sbb logs -f` | View live logs |
-| `sbb config show` | Show configuration |
-| `sbb config token <TOKEN>` | Update bot token |
+| `/start` | Welcome message |
+| `/help` | Show all commands |
+| `/status` | Check system health |
+| `/search <query>` | Search your knowledge |
+| `/stats` | Knowledge base statistics |
+| `/graph <entity>` | Explore entity connections |
+| `/ideas <topic>` | Generate creative ideas |
+| `/export` | Export knowledge to file |
 
-### Manual Installation
+### Indexing Content
 
-```bash
-# Clone the repository
-git clone https://github.com/ericrisco/securebrainbox.git
-cd securebrainbox
+Just send content to index it:
 
-# Copy environment file and add your Telegram token
-cp .env.example .env
-# Edit .env and set TELEGRAM_BOT_TOKEN
+- 📄 **Documents** — PDF, DOCX, TXT
+- 🖼️ **Images** — Described using vision AI
+- 🎤 **Voice** — Transcribed and indexed
+- 🔗 **URLs** — Content extracted and saved
+- 💬 **Text** — Prefix with `INDEX:` to force indexing
 
-# Start everything
-docker-compose up -d
+### Querying
 
-# Initialize models (first run only, ~4GB download)
-docker-compose exec ollama ollama pull gemma3
-docker-compose exec ollama ollama pull nomic-embed-text
+Simply ask questions in natural language:
+
+> "What did I learn about machine learning last week?"
+
+> "Summarize the key points from the PDF I sent"
+
+> "How is Python related to data science in my notes?"
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Telegram Bot                          │
+├─────────────────────────────────────────────────────────┤
+│                    SecureBrain                           │
+│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐   │
+│   │ Query   │  │ Index   │  │ Entity  │  │ Ideas   │   │
+│   │ Process │  │ Content │  │ Extract │  │ Generate│   │
+│   └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘   │
+├────────┼───────────┼───────────┼───────────┼───────────┤
+│        │           │           │           │           │
+│   ┌────▼────┐  ┌───▼───┐  ┌───▼───┐  ┌───▼───┐       │
+│   │ Ollama  │  │Weaviate│  │ Kuzu  │  │ LLM   │       │
+│   │ (LLM)   │  │(Vector)│  │(Graph)│  │       │       │
+│   └─────────┘  └────────┘  └───────┘  └───────┘       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Usage
+**Components:**
 
-1. Open Telegram and find your bot
-2. Send `/start` to begin
-3. Send any content to index it
-4. Ask questions in natural language
+- **Ollama** — Local LLM (Gemma 3) for generation and embeddings
+- **Weaviate** — Vector database for semantic search
+- **Kuzu** — Embedded graph database for entity relationships
+- **python-telegram-bot** — Telegram interface
 
-## 🛠️ Tech Stack
+---
 
-| Component | Technology |
-|-----------|------------|
-| LLM | Gemma 3 via Ollama |
-| Embeddings | nomic-embed-text |
-| Vector Store | Weaviate |
-| Graph Store | Kuzu |
-| Interface | Telegram Bot |
-| Orchestration | Docker Compose |
+## ⚙️ Configuration
 
-## 📖 Documentation
+### Environment Variables
 
-- [Installation Guide](docs/INSTALLATION.md)
-- [Configuration Guide](docs/CONFIGURATION.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Development](docs/DEVELOPMENT.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TELEGRAM_BOT_TOKEN` | — | Your Telegram bot token (required) |
+| `ALLOWED_USERS` | — | Comma-separated Telegram user IDs |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama API endpoint |
+| `OLLAMA_MODEL` | `gemma3:4b` | LLM model for generation |
+| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Model for embeddings |
+| `WEAVIATE_HOST` | `http://localhost:8080` | Weaviate endpoint |
+| `DATA_DIR` | `./data` | Directory for persistent data |
+| `LOG_LEVEL` | `INFO` | Logging verbosity |
 
-## 🗺️ Roadmap
+### GPU Support
 
-- [x] Phase 0: Foundation (Docker, structure)
-- [ ] Phase 1: Core Bot (Telegram integration)
-- [ ] Phase 2: RAG Basic (vector search)
-- [ ] Phase 3: Multi-format (PDF, image, audio, URL)
-- [ ] Phase 4: Knowledge Graph
-- [ ] Phase 5: Polish & Release
+For NVIDIA GPUs, use the GPU-enabled compose file:
+
+```bash
+docker compose -f docker-compose.gpu.yml up -d
+```
+
+---
+
+## 🛠️ Development
+
+### Setup
+
+```bash
+git clone https://github.com/ericrisco/securebrainbox.git
+cd securebrainbox
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+```bash
+pytest tests/ -v
+pytest tests/ --cov=src --cov-report=html
+```
+
+### Code Quality
+
+```bash
+ruff check .
+ruff format .
+mypy src/
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Services not starting
+
+```bash
+sbb status
+docker compose logs ollama
+docker compose logs weaviate
+```
+
+### Out of memory
+
+Reduce model size in `.env`:
+```env
+OLLAMA_MODEL=gemma3:2b
+```
+
+### Slow responses
+
+- Check if GPU is being used: `nvidia-smi`
+- Reduce chunk size for faster processing
+- Use a smaller embedding model
+
+See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push: `git push origin feature/amazing`
+5. Open a Pull Request
+
+---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
 
 ## 🙏 Acknowledgments
 
-Built with ❤️ using:
-- [Ollama](https://ollama.ai) - Local LLM inference
-- [Weaviate](https://weaviate.io) - Vector database
-- [python-telegram-bot](https://python-telegram-bot.org) - Telegram API
-- [LangChain](https://langchain.com) - LLM orchestration
+- [Ollama](https://ollama.ai) — Local LLM inference
+- [Weaviate](https://weaviate.io) — Vector database
+- [Kuzu](https://kuzudb.com) — Embedded graph database
+- [python-telegram-bot](https://python-telegram-bot.org) — Telegram API
+
+---
+
+**Made with 🧠 by [Eric Risco](https://github.com/ericrisco)**

@@ -337,6 +337,66 @@ async def ideas_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
 
 
+@log_command
+async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /export command - export knowledge to file."""
+    from telegram.constants import ChatAction
+    import json
+    import io
+    from datetime import datetime
+    
+    await update.message.reply_text(
+        "📤 Exporting your knowledge base...",
+        parse_mode="Markdown"
+    )
+    await update.message.chat.send_action(ChatAction.UPLOAD_DOCUMENT)
+    
+    try:
+        from src.agent.brain import agent
+        from src.storage.graph import knowledge_graph
+        
+        # Get vector store stats
+        stats = await agent.get_stats()
+        
+        # Get all entities from graph
+        entities = knowledge_graph.get_most_connected(limit=1000)
+        
+        # Build export data
+        export_data = {
+            "exported_at": datetime.utcnow().isoformat(),
+            "stats": {
+                "total_chunks": stats.get("total_chunks", 0),
+                "total_entities": stats.get("entities", 0),
+                "total_relations": stats.get("relations", 0),
+            },
+            "top_entities": entities,
+        }
+        
+        # Create JSON file
+        json_content = json.dumps(export_data, indent=2, ensure_ascii=False)
+        file_bytes = io.BytesIO(json_content.encode('utf-8'))
+        file_bytes.name = f"securebrainbox_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        await update.message.reply_document(
+            document=file_bytes,
+            filename=file_bytes.name,
+            caption=(
+                "✅ *Export complete!*\n\n"
+                f"📊 Chunks: {stats.get('total_chunks', 0)}\n"
+                f"🔗 Entities: {stats.get('entities', 0)}\n"
+                f"↔️ Relations: {stats.get('relations', 0)}"
+            ),
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Export error: {e}")
+        await update.message.reply_text(
+            "❌ Export failed. Please check `/status`.",
+            parse_mode="Markdown"
+        )
+
+
 async def _check_ollama() -> bool:
     """Check if Ollama service is healthy."""
     try:
