@@ -23,6 +23,8 @@ from src.agent.prompts import (
     INDEXING_CONFIRMATION,
 )
 from src.agent.entities import entity_extractor
+from src.soul.loader import SoulLoader, SoulContext
+from src.soul.init import SoulInitializer
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,8 @@ class SecureBrain:
     def __init__(self):
         """Initialize the SecureBrain agent."""
         self.initialized = False
+        self.soul_context: Optional[SoulContext] = None
+        self.soul_loader: Optional[SoulLoader] = None
         logger.info("SecureBrain instance created")
     
     async def initialize(self) -> None:
@@ -84,6 +88,17 @@ class SecureBrain:
         logger.info(f"  Embed Model: {settings.ollama_embed_model}")
         
         try:
+            # Initialize soul files from defaults
+            soul_init = SoulInitializer(
+                data_dir=settings.data_dir,
+                defaults_dir=str(settings.defaults_dir)
+            )
+            await soul_init.initialize()
+            
+            # Load soul context
+            self.soul_loader = SoulLoader(settings.data_dir)
+            self.soul_context = await self.soul_loader.load()
+            
             # Connect to vector store
             await vector_store.connect()
             
@@ -122,9 +137,10 @@ class SecureBrain:
                 # No context found - use the no-context prompt
                 logger.debug("No relevant context found, using general response")
                 prompt = NO_CONTEXT_PROMPT.format(query=query)
+                system = self._build_system_prompt()
                 return await llm_client.generate(
                     prompt=prompt,
-                    system=SYSTEM_PROMPT
+                    system=system
                 )
             
             # 2. Build context from results
@@ -145,9 +161,10 @@ class SecureBrain:
                 query=query
             )
             
+            system = self._build_system_prompt()
             response = await llm_client.generate(
                 prompt=prompt,
-                system=SYSTEM_PROMPT
+                system=system
             )
             
             # 4. Add sources footer if we have sources
@@ -338,6 +355,34 @@ class SecureBrain:
         except Exception as e:
             logger.error(f"Error getting stats: {e}")
             return {"total_chunks": 0, "error": str(e)}
+    
+    def _build_system_prompt(self) -> str:
+        """Build system prompt with soul context.
+        
+        Combines the base system prompt with loaded soul files
+        (personality, identity, user context, memory).
+        
+        Returns:
+            Complete system prompt string.
+        """
+        # Start with base prompt
+        prompt_parts = [SYSTEM_PROMPT]
+        
+        # Add soul context if available
+        if self.soul_context and not self.soul_context.is_empty:
+            soul_prompt = self.soul_context.to_system_prompt()
+            prompt_parts.append(soul_prompt)
+        
+        return "\n\n---\n\n".join(prompt_parts)
+    
+    async def reload_soul(self) -> None:
+        """Reload soul context from files.
+        
+        Call this after updating SOUL.md, USER.md, etc.
+        """
+        if self.soul_loader:
+            self.soul_context = await self.soul_loader.load()
+            logger.info("Soul context reloaded")
     
     def get_indexing_confirmation(
         self,
