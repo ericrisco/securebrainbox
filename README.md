@@ -22,19 +22,34 @@
 - Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
 - ~8GB RAM recommended
 
-### One-Line Install
+### Install (Choose One)
 
 ```bash
+# Option 1: curl (Mac/Linux) ⭐
+curl -sSL https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.sh | bash
+
+# Option 2: Homebrew (Mac)
+brew install ericrisco/tap/securebrainbox
+
+# Option 3: npx (Node.js)
+npx securebrainbox install
+
+# Option 4: pip (Python)
 pip install securebrainbox
+```
+
+Then run the setup wizard:
+
+```bash
 sbb install
 ```
 
-That's it! The wizard will guide you through:
+The wizard guides you through:
 1. ✅ Docker check
 2. 🤖 Telegram bot setup  
 3. ⚙️ Configuration
 4. 🚀 Start services
-5. 📦 Download AI models
+5. 📦 Download AI models (~4GB)
 
 ### Commands
 
@@ -88,6 +103,7 @@ docker-compose exec ollama ollama pull nomic-embed-text
 
 ## 📖 Documentation
 
+- [Installation Guide](docs/INSTALLATION.md)
 - [Configuration Guide](docs/CONFIGURATION.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Development](docs/DEVELOPMENT.md)
