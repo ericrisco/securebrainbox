@@ -12,6 +12,26 @@ from rich.prompt import Prompt, Confirm
 
 console = Console()
 
+# ASCII art logo
+LOGO = """
+[bold blue]
+    ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝[/]
+[yellow]
+           ╔═══════╗
+           ║ ┌───┐ ║
+           ║ │ 🧠│ ║
+           ╠═╧═══╧═╣
+           ║ ░░░░░ ║
+           ║ ░░░░░ ║
+           ╚═══════╝[/]
+[dim]     SecureBrainBox v0.1.0[/]
+"""
+
 
 def check_docker() -> bool:
     """Check if Docker is installed and running."""
@@ -146,12 +166,9 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
     5. Download AI models
     """
     console.print()
-    console.print(Panel.fit(
-        "[bold blue]🧠 SecureBrainBox Setup Wizard[/]\n\n"
-        "Your private second brain that never forgets.\n"
-        "[dim]100% local • No cloud • Full privacy[/]",
-        border_style="blue"
-    ))
+    console.print(LOGO)
+    console.print("[bold]Your private second brain that never forgets.[/]")
+    console.print("[dim]100% local • No cloud • Full privacy[/]")
     console.print()
     
     # Step 1: Check Docker
