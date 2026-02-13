@@ -476,6 +476,109 @@ async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
 
 
+@log_command
+async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /memory command - show long-term memory."""
+    try:
+        from src.soul.memory import get_memory_manager
+        
+        manager = get_memory_manager()
+        memory_content = await manager.get_memory()
+        
+        if not memory_content or len(memory_content.strip()) < 20:
+            await update.message.reply_text(
+                "🧠 *Long-term Memory*\n\n_No memories stored yet._\n\n"
+                "Memories are automatically saved from conversations "
+                "or you can edit `MEMORY.md` directly.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Truncate for display
+        if len(memory_content) > 3500:
+            memory_content = memory_content[:3500] + "\n\n_...truncated_"
+        
+        await update.message.reply_text(
+            f"🧠 *Long-term Memory*\n\n{memory_content}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Memory error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load memory.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /today command - show today's log."""
+    try:
+        from src.soul.memory import get_memory_manager
+        
+        manager = get_memory_manager()
+        log_content = await manager.get_today_log()
+        
+        if not log_content or len(log_content.strip()) < 20:
+            await update.message.reply_text(
+                "📅 *Today's Log*\n\n_No entries yet today._",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Truncate for display
+        if len(log_content) > 3500:
+            log_content = log_content[:3500] + "\n\n_...truncated_"
+        
+        await update.message.reply_text(
+            f"📅 *Today's Log*\n\n{log_content}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Today log error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load today's log.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /remember command - save something to memory."""
+    content = " ".join(context.args) if context.args else ""
+    
+    if not content:
+        await update.message.reply_text(
+            "💾 *Remember*\n\n"
+            "*Usage:* `/remember <text to save>`\n\n"
+            "*Examples:*\n"
+            "• `/remember User prefers dark mode`\n"
+            "• `/remember Project deadline is March 15`",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        from src.soul.memory import get_memory_manager
+        
+        manager = get_memory_manager()
+        await manager.append_to_memory("Notes", content)
+        
+        await update.message.reply_text(
+            f"✅ *Saved to memory!*\n\n_{content}_",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Remember error: {e}")
+        await update.message.reply_text(
+            "❌ Could not save to memory.",
+            parse_mode="Markdown"
+        )
+
+
 async def _check_ollama() -> bool:
     """Check if Ollama service is healthy."""
     try:

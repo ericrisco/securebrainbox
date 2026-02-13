@@ -114,6 +114,9 @@ HELP_TEXT = """📚 *SecureBrainBox Commands*
 *Soul System:*
 /identity - View bot identity
 /user - View user profile
+/memory - View long-term memory
+/today - View today's log
+/remember <text> - Save to memory
 
 *Indexing Content:*
 Send me any of these to index:
