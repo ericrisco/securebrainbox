@@ -1,4 +1,4 @@
-"""Telegram bot message handlers with RAG integration."""
+"""Telegram bot message handlers with full content processing."""
 
 import logging
 import re
@@ -8,6 +8,7 @@ from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
 from src.agent.brain import agent
+from src.processors import processor_manager
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,6 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     user = update.effective_user
     chat_id = update.effective_chat.id
     
-    # Log incoming message
     logger.info(f"Text from {user.id} (@{user.username}): {user_message[:50]}...")
     
     # Send typing indicator
@@ -30,7 +30,6 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     try:
         # Check if user wants to explicitly index content
-        # Format: "INDEX: content to index"
         if user_message.upper().startswith("INDEX:"):
             content = user_message[6:].strip()
             
@@ -42,7 +41,6 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 )
                 return
             
-            # Index the content
             source = f"telegram_{update.message.message_id}"
             chunk_count = await agent.index_text(
                 text=content,
@@ -61,26 +59,20 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 chunk_count=chunk_count
             )
         else:
-            # Process as a query
             response = await agent.process_query(user_message)
         
-        # Send response
         await update.message.reply_text(response, parse_mode="Markdown")
         
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         await update.message.reply_text(
-            "❌ Sorry, I encountered an error. "
-            "Please try again or check `/status`.",
+            "❌ Sorry, I encountered an error. Please try again or check `/status`.",
             parse_mode="Markdown"
         )
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle incoming documents (PDF, DOCX, etc.).
-    
-    Placeholder - full implementation in Phase 3.
-    """
+    """Handle incoming documents (PDF, DOCX, etc.)."""
     document = update.message.document
     file_name = document.file_name
     file_size = document.file_size
@@ -89,84 +81,213 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user = update.effective_user
     logger.info(f"Document from {user.id}: {file_name} ({mime_type}, {file_size} bytes)")
     
-    # Check supported formats
-    supported_mimes = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain",
-    ]
-    
-    if mime_type not in supported_mimes:
+    # Check if supported
+    if not processor_manager.is_supported(mime_type):
+        supported = processor_manager.get_supported_types()
         await update.message.reply_text(
             f"⚠️ Unsupported file type: `{mime_type}`\n\n"
             "*Supported formats:*\n"
             "• PDF (.pdf)\n"
-            "• Word (.doc, .docx)\n"
-            "• Text (.txt)",
+            "• Images (jpg, png, gif, webp)\n"
+            "• Audio (mp3, wav, ogg)",
             parse_mode="Markdown"
         )
         return
     
-    # Placeholder response - will process in Phase 3
-    await update.message.reply_text(
-        f"📄 *Document received:* `{file_name}`\n"
-        f"📦 Size: {_format_size(file_size)}\n\n"
-        "⏳ Document processing coming in Phase 3.\n"
-        "I'll be able to read and index this document soon!",
-        parse_mode="Markdown"
-    )
+    # Send processing indicator
+    await update.message.reply_text(f"📄 Processing `{file_name}`...", parse_mode="Markdown")
+    await update.message.chat.send_action(ChatAction.TYPING)
+    
+    try:
+        # Download file
+        file = await document.get_file()
+        content = await file.download_as_bytearray()
+        
+        # Process with appropriate processor
+        result = await processor_manager.process(
+            content=bytes(content),
+            mime_type=mime_type,
+            filename=file_name
+        )
+        
+        if result.error:
+            await update.message.reply_text(
+                f"❌ Error processing `{file_name}`:\n{result.error}",
+                parse_mode="Markdown"
+            )
+            return
+        
+        if not result.text:
+            await update.message.reply_text(
+                f"⚠️ Could not extract text from `{file_name}`.\n"
+                "The file may be empty or contain only images.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Index the content
+        chunk_count = await agent.index_text(
+            text=result.text,
+            source=result.source,
+            source_type=result.source_type,
+            metadata=result.metadata
+        )
+        
+        response = agent.get_indexing_confirmation(
+            source=file_name,
+            source_type=result.source_type,
+            chunk_count=chunk_count
+        )
+        
+        # Add some stats
+        if result.metadata.get("pages"):
+            response += f"\n📑 Pages: {result.metadata['pages']}"
+        
+        await update.message.reply_text(response, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Error processing document {file_name}: {e}")
+        await update.message.reply_text(
+            f"❌ Failed to process `{file_name}`: {str(e)[:100]}",
+            parse_mode="Markdown"
+        )
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle incoming photos.
-    
-    Placeholder - full implementation in Phase 3.
-    """
+    """Handle incoming photos."""
     photo = update.message.photo[-1]  # Get highest resolution
+    caption = update.message.caption
     
     user = update.effective_user
     logger.info(f"Photo from {user.id}: {photo.width}x{photo.height}")
     
-    # Check for caption
-    caption = update.message.caption or ""
+    # Send processing indicator
+    await update.message.reply_text("🖼️ Analyzing image...", parse_mode="Markdown")
+    await update.message.chat.send_action(ChatAction.TYPING)
     
-    await update.message.reply_text(
-        f"🖼️ *Image received*\n"
-        f"📐 Size: {photo.width}x{photo.height}\n"
-        + (f"📝 Caption: _{caption}_\n" if caption else "") +
-        "\n⏳ Image analysis coming in Phase 3.\n"
-        "I'll be able to describe and index images soon!",
-        parse_mode="Markdown"
-    )
+    try:
+        # Download photo
+        file = await photo.get_file()
+        content = await file.download_as_bytearray()
+        
+        # Process with image processor
+        result = await processor_manager.process(
+            content=bytes(content),
+            mime_type="image/jpeg",
+            filename=f"photo_{photo.file_id}.jpg",
+            caption=caption
+        )
+        
+        if result.error and not result.text:
+            await update.message.reply_text(
+                f"⚠️ Could not analyze image: {result.error}",
+                parse_mode="Markdown"
+            )
+            return
+        
+        if result.text:
+            # Index the content
+            chunk_count = await agent.index_text(
+                text=result.text,
+                source=result.source,
+                source_type="image",
+                metadata=result.metadata
+            )
+            
+            # Show preview of description
+            preview = result.text[:300] + "..." if len(result.text) > 300 else result.text
+            
+            await update.message.reply_text(
+                f"✅ *Image indexed!*\n\n"
+                f"📝 *Description:*\n_{preview}_\n\n"
+                f"🧩 Chunks: {chunk_count}",
+                parse_mode="Markdown"
+            )
+        else:
+            await update.message.reply_text(
+                "⚠️ Could not generate description for this image.",
+                parse_mode="Markdown"
+            )
+        
+    except Exception as e:
+        logger.error(f"Error processing photo: {e}")
+        await update.message.reply_text(
+            f"❌ Failed to process image: {str(e)[:100]}",
+            parse_mode="Markdown"
+        )
 
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle incoming voice messages and audio files.
-    
-    Placeholder - full implementation in Phase 3.
-    """
+    """Handle incoming voice messages and audio files."""
     voice = update.message.voice or update.message.audio
     
     user = update.effective_user
     duration = voice.duration if hasattr(voice, 'duration') else 0
+    mime_type = voice.mime_type if hasattr(voice, 'mime_type') else "audio/ogg"
     
-    logger.info(f"Audio from {user.id}: {duration}s")
+    logger.info(f"Audio from {user.id}: {duration}s, {mime_type}")
     
+    # Send processing indicator
     await update.message.reply_text(
-        f"🎤 *Audio received*\n"
-        f"⏱️ Duration: {_format_duration(duration)}\n\n"
-        "⏳ Audio transcription coming in Phase 3.\n"
-        "I'll be able to transcribe and index audio soon!",
+        f"🎤 Transcribing audio ({_format_duration(duration)})...",
         parse_mode="Markdown"
     )
+    await update.message.chat.send_action(ChatAction.TYPING)
+    
+    try:
+        # Download audio
+        file = await voice.get_file()
+        content = await file.download_as_bytearray()
+        
+        # Process with audio processor
+        result = await processor_manager.process(
+            content=bytes(content),
+            mime_type=mime_type,
+            filename=f"voice_{voice.file_id}.ogg"
+        )
+        
+        if result.error:
+            await update.message.reply_text(
+                f"⚠️ Could not transcribe audio: {result.error}",
+                parse_mode="Markdown"
+            )
+            return
+        
+        if not result.text:
+            await update.message.reply_text(
+                "⚠️ No speech detected in the audio.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Index the transcription
+        chunk_count = await agent.index_text(
+            text=result.text,
+            source=result.source,
+            source_type="audio",
+            metadata=result.metadata
+        )
+        
+        # Show transcription preview
+        preview = result.text[:500] + "..." if len(result.text) > 500 else result.text
+        
+        await update.message.reply_text(
+            f"✅ *Audio transcribed and indexed!*\n\n"
+            f"📝 *Transcription:*\n_{preview}_\n\n"
+            f"🧩 Chunks: {chunk_count}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error processing audio: {e}")
+        await update.message.reply_text(
+            f"❌ Failed to process audio: {str(e)[:100]}",
+            parse_mode="Markdown"
+        )
 
 
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle messages containing URLs.
-    
-    Placeholder - full implementation in Phase 3.
-    """
+    """Handle messages containing URLs."""
     text = update.message.text
     user = update.effective_user
     
@@ -175,29 +296,63 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     urls = re.findall(url_pattern, text)
     
     if not urls:
-        # No URLs found, pass to regular text handler
         await handle_text_message(update, context)
         return
     
     logger.info(f"URL from {user.id}: {urls[0]}")
     
-    # Format URLs for display
-    url_list = "\n".join([f"• `{url}`" for url in urls])
-    
-    await update.message.reply_text(
-        f"🔗 *URL{'s' if len(urls) > 1 else ''} detected:*\n{url_list}\n\n"
-        "⏳ Web content extraction coming in Phase 3.\n"
-        "I'll be able to read and index web pages soon!\n\n"
-        "_For now, I'll process your message as a query:_",
-        parse_mode="Markdown"
-    )
-    
-    # Also process the text part as a query (excluding URLs)
-    text_without_urls = re.sub(url_pattern, '', text).strip()
-    if text_without_urls:
+    # Process each URL
+    for url in urls[:3]:  # Limit to 3 URLs per message
+        await update.message.reply_text(
+            f"🔗 Processing: `{url[:50]}{'...' if len(url) > 50 else ''}`",
+            parse_mode="Markdown"
+        )
         await update.message.chat.send_action(ChatAction.TYPING)
-        response = await agent.process_query(text_without_urls)
-        await update.message.reply_text(response, parse_mode="Markdown")
+        
+        try:
+            # Import URL processor
+            from src.processors.url import url_processor
+            
+            result = await url_processor.process_url(url)
+            
+            if result.error:
+                await update.message.reply_text(
+                    f"⚠️ Could not process URL: {result.error}",
+                    parse_mode="Markdown"
+                )
+                continue
+            
+            if not result.text:
+                await update.message.reply_text(
+                    "⚠️ Could not extract content from URL.",
+                    parse_mode="Markdown"
+                )
+                continue
+            
+            # Index the content
+            chunk_count = await agent.index_text(
+                text=result.text,
+                source=result.source,
+                source_type="url",
+                metadata=result.metadata
+            )
+            
+            title = result.metadata.get("title", url)
+            
+            await update.message.reply_text(
+                f"✅ *URL indexed!*\n\n"
+                f"📰 *Title:* {title}\n"
+                f"🌐 Domain: `{result.metadata.get('domain', 'unknown')}`\n"
+                f"🧩 Chunks: {chunk_count}",
+                parse_mode="Markdown"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error processing URL {url}: {e}")
+            await update.message.reply_text(
+                f"❌ Failed to process URL: {str(e)[:100]}",
+                parse_mode="Markdown"
+            )
 
 
 def _format_size(size_bytes: int) -> str:
