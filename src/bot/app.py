@@ -21,6 +21,9 @@ from src.bot.commands import (
     export_command,
     identity_command,
     user_command,
+    memory_command,
+    today_command,
+    remember_command,
 )
 from src.bot.handlers import (
     handle_text_message,
@@ -62,6 +65,9 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("export", export_command))
     app.add_handler(CommandHandler("identity", identity_command))
     app.add_handler(CommandHandler("user", user_command))
+    app.add_handler(CommandHandler("memory", memory_command))
+    app.add_handler(CommandHandler("today", today_command))
+    app.add_handler(CommandHandler("remember", remember_command))
     
     # Message handlers
     # URLs in text messages

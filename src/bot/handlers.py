@@ -145,6 +145,17 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         await update.message.reply_text(response, parse_mode="Markdown")
         
+        # Auto-log the indexing
+        try:
+            from src.soul.memory import get_memory_manager
+            manager = get_memory_manager()
+            await manager.append_log(
+                f"Indexed: {file_name} ({chunk_count} chunks)",
+                section="Indexing"
+            )
+        except Exception as log_err:
+            logger.debug(f"Could not auto-log: {log_err}")
+        
     except Exception as e:
         logger.error(f"Error processing document {file_name}: {e}")
         await update.message.reply_text(
@@ -346,6 +357,17 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                 f"🧩 Chunks: {chunk_count}",
                 parse_mode="Markdown"
             )
+            
+            # Auto-log the indexing
+            try:
+                from src.soul.memory import get_memory_manager
+                manager = get_memory_manager()
+                await manager.append_log(
+                    f"Indexed URL: {title[:50]}",
+                    section="Indexing"
+                )
+            except Exception as log_err:
+                logger.debug(f"Could not auto-log: {log_err}")
             
         except Exception as e:
             logger.error(f"Error processing URL {url}: {e}")
