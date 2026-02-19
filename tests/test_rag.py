@@ -184,14 +184,53 @@ class TestSecureBrain:
             yield mock
 
     @pytest.fixture
+    def mock_knowledge_graph(self):
+        """Mock the knowledge graph."""
+        with patch("src.agent.brain.knowledge_graph") as mock:
+            mock.connect = MagicMock()
+            mock.get_entity_count.return_value = 0
+            mock.get_relation_count.return_value = 0
+            mock.add_document = MagicMock()
+            mock.add_entity = MagicMock()
+            mock.add_mention = MagicMock()
+            mock.add_relation = MagicMock()
+            yield mock
+
+    @pytest.fixture
+    def mock_soul(self):
+        """Mock soul initialization."""
+        with (
+            patch("src.agent.brain.SoulInitializer") as mock_si,
+            patch("src.agent.brain.SoulLoader") as mock_sl,
+            patch("src.agent.brain.get_skill_registry") as mock_sr,
+        ):
+            mock_si_inst = MagicMock()
+            mock_si_inst.initialize = AsyncMock()
+            mock_si.return_value = mock_si_inst
+            mock_sl_inst = MagicMock()
+            mock_sl_inst.load = AsyncMock(return_value=MagicMock(is_empty=True))
+            mock_sl.return_value = mock_sl_inst
+            mock_sr_inst = MagicMock()
+            mock_sr_inst.skills = []
+            mock_sr.return_value = mock_sr_inst
+            yield
+
+    @pytest.fixture
     def mock_llm_client(self):
         """Mock the LLM client."""
         with patch("src.agent.brain.llm_client") as mock:
             mock.generate = AsyncMock(return_value="AI response")
             yield mock
 
+    @pytest.fixture
+    def mock_entity_extractor(self):
+        """Mock the entity extractor."""
+        with patch("src.agent.brain.entity_extractor") as mock:
+            mock.extract = AsyncMock(return_value=MagicMock(error=None, entities=[], relations=[]))
+            yield mock
+
     @pytest.mark.asyncio
-    async def test_initialize(self, mock_vector_store):
+    async def test_initialize(self, mock_vector_store, mock_knowledge_graph, mock_soul):
         """Test agent initialization."""
         from src.agent.brain import SecureBrain
 
@@ -204,7 +243,9 @@ class TestSecureBrain:
         mock_vector_store.connect.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_process_query_no_context(self, mock_vector_store, mock_llm_client):
+    async def test_process_query_no_context(
+        self, mock_vector_store, mock_knowledge_graph, mock_soul, mock_llm_client
+    ):
         """Test query processing with no context found."""
         from src.agent.brain import SecureBrain
 
@@ -217,7 +258,9 @@ class TestSecureBrain:
         mock_llm_client.generate.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_process_query_with_context(self, mock_vector_store, mock_llm_client):
+    async def test_process_query_with_context(
+        self, mock_vector_store, mock_knowledge_graph, mock_soul, mock_llm_client
+    ):
         """Test query processing with context found."""
         from src.agent.brain import SecureBrain
 
@@ -237,7 +280,13 @@ class TestSecureBrain:
         assert "doc1.pdf" in result or "Sources" in result
 
     @pytest.mark.asyncio
-    async def test_index_text(self, mock_vector_store):
+    async def test_index_text(
+        self,
+        mock_vector_store,
+        mock_knowledge_graph,
+        mock_soul,
+        mock_entity_extractor,
+    ):
         """Test text indexing."""
         from src.agent.brain import SecureBrain
 
@@ -251,7 +300,7 @@ class TestSecureBrain:
         mock_vector_store.add_chunks_batch.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_stats(self, mock_vector_store):
+    async def test_get_stats(self, mock_vector_store, mock_knowledge_graph, mock_soul):
         """Test getting statistics."""
         from src.agent.brain import SecureBrain
 
