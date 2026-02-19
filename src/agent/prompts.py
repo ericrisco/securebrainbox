@@ -111,6 +111,14 @@ HELP_TEXT = """📚 *SecureBrainBox Commands*
 /graph <entity> - Explore entity connections
 /ideas <topic> - Generate creative ideas
 
+*Soul System:*
+/identity - View bot identity
+/user - View user profile
+/memory - View long-term memory
+/today - View today's log
+/remember <text> - Save to memory
+/skills - List available skills
+
 *Indexing Content:*
 Send me any of these to index:
 • 📄 Documents (PDF, DOCX, TXT)

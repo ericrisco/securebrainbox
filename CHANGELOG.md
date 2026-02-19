@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Soul System** (inspired by OpenClaw)
+  - `SOUL.md` - Bot personality and behavior guidelines
+  - `IDENTITY.md` - Unique bot identity (name, emoji, tagline)
+  - `USER.md` - User profile and preferences
+  - `MEMORY.md` - Long-term curated memory
+  - Daily log files in `memory/YYYY-MM-DD.md`
+  - Modular skills system with on-demand loading
+  - Commands: `/identity`, `/user`, `/memory`, `/today`, `/remember`, `/skills`
+
+- **Bootstrap & Onboarding**
+  - First-run identity generation using LLM
+  - Guided onboarding flow (name, timezone, preferences)
+  - 30+ city timezone mappings
+  - Automatic USER.md creation
+
+- **CI/CD**
+  - GitHub Actions workflow (lint, test, build)
+  - Code coverage reporting
+
+### Fixed
+
+- `langchain-weaviate` dependency version (0.1.0 → 0.0.3)
+
 ## [0.1.0] - 2026-02-13
 
 ### Added

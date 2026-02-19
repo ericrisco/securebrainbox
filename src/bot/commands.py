@@ -15,25 +15,70 @@ logger = logging.getLogger(__name__)
 
 @log_command
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /start command - welcome message."""
+    """Handle /start command - welcome or bootstrap."""
+    from src.soul.bootstrap import get_bootstrap_manager, get_onboarding, OnboardingStep
+    from src.utils.llm import llm_client
+    
+    bootstrap = get_bootstrap_manager()
+    onboarding = get_onboarding()
+    
+    if bootstrap.needs_bootstrap():
+        # First run - generate identity and start onboarding
+        await update.message.reply_text("🚀 *First run detected!* Setting up...", parse_mode="Markdown")
+        
+        try:
+            # Generate unique identity
+            identity = await bootstrap.generate_identity(llm_client)
+            bootstrap.write_identity(identity)
+            
+            # Get welcome message
+            welcome = onboarding.get_message_for_step(
+                OnboardingStep.WELCOME,
+                identity["name"]
+            )
+            
+            # Start onboarding flow
+            onboarding.set_step(OnboardingStep.NAME)
+            bootstrap.mark_complete()
+            
+            await update.message.reply_text(welcome, parse_mode="Markdown")
+            
+        except Exception as e:
+            logger.error(f"Bootstrap failed: {e}")
+            # Fallback to normal welcome
+            await update.message.reply_text(
+                "❌ Setup failed. Please try /start again.",
+                parse_mode="Markdown"
+            )
+        return
+    
+    # Check if we're mid-onboarding
+    if not onboarding.is_complete():
+        step = onboarding.get_step()
+        bot_name = "Brain"  # Default
+        
+        try:
+            from src.agent.brain import agent
+            if agent.soul_context and agent.soul_context.identity:
+                bot_name = agent.soul_context.identity.get("name", "Brain")
+        except Exception:
+            pass
+        
+        message = onboarding.get_message_for_step(step, bot_name)
+        if message:
+            await update.message.reply_text(message, parse_mode="Markdown")
+            return
+    
+    # Normal welcome for returning users
     welcome_text = """
-🧠 *SecureBrainBox*
+🧠 *Welcome back!*
 
-Your private second brain that never forgets.
+How can I help you today?
 
-*What can I do?*
-📄 Send me documents (PDF, DOCX)
-🖼️ Send me images
-🎤 Send me voice messages
-🔗 Send me URLs
-💬 Ask me anything
-
-Everything is processed *100% locally*. Your data never leaves your machine.
-
-*Quick Start:*
-1. Send me some content to index
-2. Ask questions about it
-3. I'll find relevant info and answer
+📄 Send me content to index
+🔍 Ask questions about your knowledge
+💡 Use /ideas for insights
+🧠 Use /memory to see what I remember
 
 Type /help to see all commands.
     """
@@ -393,6 +438,223 @@ async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.error(f"Export error: {e}")
         await update.message.reply_text(
             "❌ Export failed. Please check `/status`.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def identity_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /identity command - show bot identity."""
+    try:
+        from src.agent.brain import agent
+        
+        if not agent.soul_context or not agent.soul_context.identity:
+            await update.message.reply_text(
+                "🧠 *Identity*\n\n_No identity configured yet._",
+                parse_mode="Markdown"
+            )
+            return
+        
+        identity = agent.soul_context.identity
+        
+        # Truncate for display
+        if len(identity) > 3000:
+            identity = identity[:3000] + "\n\n_...truncated_"
+        
+        await update.message.reply_text(
+            f"🧠 *Bot Identity*\n\n{identity}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Identity error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load identity.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /user command - show/edit user profile."""
+    from pathlib import Path
+    
+    try:
+        from src.agent.brain import agent
+        
+        args = " ".join(context.args) if context.args else ""
+        
+        if not args:
+            # Show current user profile
+            if not agent.soul_context or not agent.soul_context.user:
+                await update.message.reply_text(
+                    "👤 *User Profile*\n\n_No profile configured yet._\n\n"
+                    "Edit `USER.md` to add your profile.",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            user_content = agent.soul_context.user
+            
+            # Truncate for display
+            if len(user_content) > 3000:
+                user_content = user_content[:3000] + "\n\n_...truncated_"
+            
+            await update.message.reply_text(
+                f"👤 *User Profile*\n\n{user_content}",
+                parse_mode="Markdown"
+            )
+        else:
+            # Show help for editing
+            await update.message.reply_text(
+                "👤 *User Profile*\n\n"
+                "To update your profile, edit the `USER.md` file in your data directory.\n\n"
+                f"Location: `{settings.data_dir}/USER.md`",
+                parse_mode="Markdown"
+            )
+        
+    except Exception as e:
+        logger.error(f"User error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load user profile.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def memory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /memory command - show long-term memory."""
+    try:
+        from src.soul.memory import get_memory_manager
+        
+        manager = get_memory_manager()
+        memory_content = await manager.get_memory()
+        
+        if not memory_content or len(memory_content.strip()) < 20:
+            await update.message.reply_text(
+                "🧠 *Long-term Memory*\n\n_No memories stored yet._\n\n"
+                "Memories are automatically saved from conversations "
+                "or you can edit `MEMORY.md` directly.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Truncate for display
+        if len(memory_content) > 3500:
+            memory_content = memory_content[:3500] + "\n\n_...truncated_"
+        
+        await update.message.reply_text(
+            f"🧠 *Long-term Memory*\n\n{memory_content}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Memory error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load memory.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /today command - show today's log."""
+    try:
+        from src.soul.memory import get_memory_manager
+        
+        manager = get_memory_manager()
+        log_content = await manager.get_today_log()
+        
+        if not log_content or len(log_content.strip()) < 20:
+            await update.message.reply_text(
+                "📅 *Today's Log*\n\n_No entries yet today._",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Truncate for display
+        if len(log_content) > 3500:
+            log_content = log_content[:3500] + "\n\n_...truncated_"
+        
+        await update.message.reply_text(
+            f"📅 *Today's Log*\n\n{log_content}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Today log error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load today's log.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def skills_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /skills command - list available skills."""
+    try:
+        from src.soul.skills import get_skill_registry
+        
+        registry = get_skill_registry()
+        skills = registry.list_skills()
+        
+        if not skills:
+            await update.message.reply_text(
+                "⚔️ *Skills*\n\n_No skills installed._\n\n"
+                "Add skills to `data/skills/` directory.\n"
+                "Each skill needs a `SKILL.md` file.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        lines = [f"⚔️ *Available Skills* ({len(skills)})\n"]
+        
+        for skill in skills:
+            desc = skill["description"][:100] + "..." if len(skill["description"]) > 100 else skill["description"]
+            lines.append(f"• **{skill['name']}**")
+            lines.append(f"  _{desc}_\n")
+        
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Skills error: {e}")
+        await update.message.reply_text(
+            "❌ Could not load skills.",
+            parse_mode="Markdown"
+        )
+
+
+@log_command
+async def remember_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /remember command - save something to memory."""
+    content = " ".join(context.args) if context.args else ""
+    
+    if not content:
+        await update.message.reply_text(
+            "💾 *Remember*\n\n"
+            "*Usage:* `/remember <text to save>`\n\n"
+            "*Examples:*\n"
+            "• `/remember User prefers dark mode`\n"
+            "• `/remember Project deadline is March 15`",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        from src.soul.memory import get_memory_manager
+        
+        manager = get_memory_manager()
+        await manager.append_to_memory("Notes", content)
+        
+        await update.message.reply_text(
+            f"✅ *Saved to memory!*\n\n_{content}_",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Remember error: {e}")
+        await update.message.reply_text(
+            "❌ Could not save to memory.",
             parse_mode="Markdown"
         )
 

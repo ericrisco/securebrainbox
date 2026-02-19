@@ -18,12 +18,56 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     Processes user messages as queries against the knowledge base
     using RAG (Retrieval-Augmented Generation).
+    
+    If onboarding is in progress, routes to onboarding flow instead.
     """
     user_message = update.message.text
     user = update.effective_user
     chat_id = update.effective_chat.id
     
     logger.info(f"Text from {user.id} (@{user.username}): {user_message[:50]}...")
+    
+    # Check if we're in onboarding flow
+    from src.soul.bootstrap import get_onboarding, OnboardingStep
+    
+    onboarding = get_onboarding()
+    if not onboarding.is_complete():
+        step = onboarding.get_step()
+        
+        # Process the response for current step
+        result = onboarding.process_response(step, user_message)
+        
+        # Move to next step
+        next_step = result.get("next", OnboardingStep.COMPLETE)
+        onboarding.set_step(next_step)
+        
+        # Get bot name for messages
+        bot_name = "Brain"
+        try:
+            if agent.soul_context and agent.soul_context.identity:
+                bot_name = agent.soul_context.identity.get("name", "Brain")
+        except Exception:
+            pass
+        
+        # Send next message if not complete
+        if next_step != OnboardingStep.COMPLETE:
+            message = onboarding.get_message_for_step(next_step, bot_name)
+            if message:
+                await update.message.reply_text(message, parse_mode="Markdown")
+        else:
+            # Onboarding complete - reload soul context
+            try:
+                await agent.reload_soul()
+            except Exception as e:
+                logger.warning(f"Could not reload soul after onboarding: {e}")
+            
+            # Final message
+            await update.message.reply_text(
+                onboarding.get_message_for_step(OnboardingStep.PREFERENCES, bot_name),
+                parse_mode="Markdown"
+            )
+        
+        return
     
     # Send typing indicator
     await update.message.chat.send_action(ChatAction.TYPING)
@@ -144,6 +188,17 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             response += f"\n📑 Pages: {result.metadata['pages']}"
         
         await update.message.reply_text(response, parse_mode="Markdown")
+        
+        # Auto-log the indexing
+        try:
+            from src.soul.memory import get_memory_manager
+            manager = get_memory_manager()
+            await manager.append_log(
+                f"Indexed: {file_name} ({chunk_count} chunks)",
+                section="Indexing"
+            )
+        except Exception as log_err:
+            logger.debug(f"Could not auto-log: {log_err}")
         
     except Exception as e:
         logger.error(f"Error processing document {file_name}: {e}")
@@ -346,6 +401,17 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                 f"🧩 Chunks: {chunk_count}",
                 parse_mode="Markdown"
             )
+            
+            # Auto-log the indexing
+            try:
+                from src.soul.memory import get_memory_manager
+                manager = get_memory_manager()
+                await manager.append_log(
+                    f"Indexed URL: {title[:50]}",
+                    section="Indexing"
+                )
+            except Exception as log_err:
+                logger.debug(f"Could not auto-log: {log_err}")
             
         except Exception as e:
             logger.error(f"Error processing URL {url}: {e}")
