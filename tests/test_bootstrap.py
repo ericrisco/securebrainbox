@@ -221,7 +221,7 @@ class TestUserOnboarding:
             content = user_path.read_text()
             assert "Alice" in content
             assert "Europe/Paris" in content
-            assert "technical" in content.lower() or "Technical" in content
+            assert "technical" in content.lower() or "code-focused" in content.lower()
 
     def test_get_message_for_step(self):
         """Test getting messages for steps."""
