@@ -1,14 +1,12 @@
 """Installation wizard with interactive onboarding."""
 
 import subprocess
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
-
+from rich.prompt import Confirm, Prompt
 
 console = Console()
 
@@ -36,11 +34,7 @@ LOGO = """
 def check_docker() -> bool:
     """Check if Docker is installed and running."""
     try:
-        result = subprocess.run(
-            ["docker", "info"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "info"], capture_output=True, timeout=10)
         return result.returncode == 0
     except Exception:
         return False
@@ -50,20 +44,12 @@ def check_docker_compose() -> bool:
     """Check if Docker Compose is available."""
     try:
         # Try docker compose (v2)
-        result = subprocess.run(
-            ["docker", "compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=10)
         if result.returncode == 0:
             return True
-        
+
         # Try docker-compose (v1)
-        result = subprocess.run(
-            ["docker-compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker-compose", "version"], capture_output=True, timeout=10)
         return result.returncode == 0
     except Exception:
         return False
@@ -72,11 +58,7 @@ def check_docker_compose() -> bool:
 def get_compose_command() -> list[str]:
     """Get the appropriate docker compose command."""
     try:
-        result = subprocess.run(
-            ["docker", "compose", "version"],
-            capture_output=True,
-            timeout=10
-        )
+        result = subprocess.run(["docker", "compose", "version"], capture_output=True, timeout=10)
         if result.returncode == 0:
             return ["docker", "compose"]
     except Exception:
@@ -111,11 +93,7 @@ def start_services(compose_cmd: list[str]) -> bool:
     """Start Docker services."""
     try:
         console.print("   [dim]Starting containers...[/]")
-        result = subprocess.run(
-            compose_cmd + ["up", "-d"],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(compose_cmd + ["up", "-d"], capture_output=True, text=True)
         if result.returncode != 0:
             console.print(f"   [red]Error: {result.stderr}[/]")
             return False
@@ -128,7 +106,7 @@ def start_services(compose_cmd: list[str]) -> bool:
 def pull_models(compose_cmd: list[str]) -> bool:
     """Download Ollama models."""
     models = ["gemma3", "nomic-embed-text"]
-    
+
     for model in models:
         console.print(f"   [dim]Pulling {model}...[/]")
         try:
@@ -136,16 +114,18 @@ def pull_models(compose_cmd: list[str]) -> bool:
                 compose_cmd + ["exec", "-T", "ollama", "ollama", "pull", model],
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minutes timeout per model
+                timeout=600,  # 10 minutes timeout per model
             )
             if result.returncode != 0:
                 console.print(f"   [yellow]Warning: Could not pull {model}[/]")
-                console.print(f"   [dim]You can pull it later: docker compose exec ollama ollama pull {model}[/]")
+                console.print(
+                    f"   [dim]You can pull it later: docker compose exec ollama ollama pull {model}[/]"
+                )
         except subprocess.TimeoutExpired:
             console.print(f"   [yellow]Timeout pulling {model}, continuing...[/]")
         except Exception as e:
             console.print(f"   [yellow]Warning: {e}[/]")
-    
+
     return True
 
 
@@ -155,9 +135,9 @@ def pull_models(compose_cmd: list[str]) -> bool:
 @click.option("--skip-models", is_flag=True, help="Skip downloading AI models")
 def install(non_interactive: bool, token: str | None, skip_models: bool):
     """🚀 Install and configure SecureBrainBox.
-    
+
     This wizard will guide you through setting up SecureBrainBox:
-    
+
     \b
     1. Check Docker installation
     2. Configure Telegram bot
@@ -170,55 +150,57 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
     console.print("[bold]Your private second brain that never forgets.[/]")
     console.print("[dim]100% local • No cloud • Full privacy[/]")
     console.print()
-    
+
     # Step 1: Check Docker
     console.print("[bold]Step 1/5:[/] Checking Docker installation...")
-    
+
     if not check_docker():
         console.print("   [red]❌ Docker is not running![/]")
         console.print()
         console.print("   Please install and start Docker:")
-        console.print("   [link=https://docs.docker.com/get-docker/]https://docs.docker.com/get-docker/[/]")
+        console.print(
+            "   [link=https://docs.docker.com/get-docker/]https://docs.docker.com/get-docker/[/]"
+        )
         console.print()
         raise click.Abort()
     console.print("   [green]✅ Docker is running[/]")
-    
+
     if not check_docker_compose():
         console.print("   [red]❌ Docker Compose not found![/]")
         raise click.Abort()
     console.print("   [green]✅ Docker Compose is available[/]")
-    
+
     compose_cmd = get_compose_command()
     console.print()
-    
+
     # Step 2: Telegram Bot Token
     console.print("[bold]Step 2/5:[/] Telegram Bot Setup")
-    
+
     if not token:
         if non_interactive:
             console.print("   [red]❌ No token provided![/]")
             console.print("   Use --token or set TELEGRAM_BOT_TOKEN env var")
             raise click.Abort()
-        
+
         console.print()
         console.print("   [dim]To create a Telegram bot:[/]")
         console.print("   1. Open Telegram and search for [bold]@BotFather[/]")
         console.print("   2. Send [bold]/newbot[/] and follow the instructions")
         console.print("   3. Copy the token (looks like: 123456789:ABC...)")
         console.print()
-        
+
         token = Prompt.ask("   Enter your bot token")
-    
+
     if not token or len(token) < 20:
         console.print("   [red]❌ Invalid token![/]")
         raise click.Abort()
-    
+
     console.print("   [green]✅ Token received[/]")
     console.print()
-    
+
     # Step 3: Create .env file
     console.print("[bold]Step 3/5:[/] Creating configuration...")
-    
+
     env_path = Path(".env")
     if env_path.exists() and not non_interactive:
         if not Confirm.ask("   .env already exists. Overwrite?", default=False):
@@ -230,15 +212,12 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
         create_env_file(token, env_path)
         console.print("   [green]✅ Configuration saved to .env[/]")
     console.print()
-    
+
     # Step 4: Start services
     console.print("[bold]Step 4/5:[/] Starting services...")
-    
-    should_start = non_interactive or Confirm.ask(
-        "   Start Docker containers now?", 
-        default=True
-    )
-    
+
+    should_start = non_interactive or Confirm.ask("   Start Docker containers now?", default=True)
+
     if should_start:
         if start_services(compose_cmd):
             console.print("   [green]✅ Services started[/]")
@@ -248,10 +227,10 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
     else:
         console.print("   [dim]Skipped. Run 'sbb start' when ready.[/]")
     console.print()
-    
+
     # Step 5: Download models
     console.print("[bold]Step 5/5:[/] Downloading AI models...")
-    
+
     if skip_models:
         console.print("   [dim]Skipped (--skip-models)[/]")
     elif should_start:
@@ -260,19 +239,21 @@ def install(non_interactive: bool, token: str | None, skip_models: bool):
         console.print("   [green]✅ Models ready[/]")
     else:
         console.print("   [dim]Skipped (services not started)[/]")
-    
+
     console.print()
-    
+
     # Done!
-    console.print(Panel.fit(
-        "[bold green]✅ Installation Complete![/]\n\n"
-        "Your SecureBrainBox is ready!\n\n"
-        "[dim]Commands:[/]\n"
-        "  [bold]sbb start[/]     Start the bot\n"
-        "  [bold]sbb stop[/]      Stop all services\n"
-        "  [bold]sbb status[/]    Check service status\n"
-        "  [bold]sbb logs -f[/]   View live logs\n"
-        "  [bold]sbb config[/]    Manage configuration\n\n"
-        f"[dim]Now open Telegram and message your bot![/]",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]✅ Installation Complete![/]\n\n"
+            "Your SecureBrainBox is ready!\n\n"
+            "[dim]Commands:[/]\n"
+            "  [bold]sbb start[/]     Start the bot\n"
+            "  [bold]sbb stop[/]      Stop all services\n"
+            "  [bold]sbb status[/]    Check service status\n"
+            "  [bold]sbb logs -f[/]   View live logs\n"
+            "  [bold]sbb config[/]    Manage configuration\n\n"
+            "[dim]Now open Telegram and message your bot![/]",
+            border_style="green",
+        )
+    )
