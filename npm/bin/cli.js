@@ -36,8 +36,30 @@ async function checkInstallation() {
 
 async function runInstaller() {
   log('blue', '🧠 SecureBrainBox');
-  log('dim', 'Installing via curl script...\n');
 
+  const isWindows = process.platform === 'win32';
+
+  if (isWindows) {
+    log('dim', 'Installing via PowerShell script...\n');
+    return new Promise((resolve, reject) => {
+      const installer = spawn('powershell', [
+        '-ExecutionPolicy', 'Bypass',
+        '-Command',
+        'irm https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.ps1 | iex'
+      ], {
+        stdio: 'inherit',
+        shell: true
+      });
+
+      installer.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`Installation failed with code ${code}`));
+      });
+      installer.on('error', reject);
+    });
+  }
+
+  log('dim', 'Installing via curl script...\n');
   return new Promise((resolve, reject) => {
     const installer = spawn('bash', ['-c', 
       'curl -sSL https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.sh | bash'
@@ -47,22 +69,24 @@ async function runInstaller() {
     });
 
     installer.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`Installation failed with code ${code}`));
-      }
+      if (code === 0) resolve();
+      else reject(new Error(`Installation failed with code ${code}`));
     });
-
     installer.on('error', reject);
   });
 }
 
 async function runSbb(args) {
+  const isWindows = process.platform === 'win32';
+  const sbbPath = isWindows 
+    ? join(homedir(), '.local', 'bin', 'sbb.cmd')
+    : SBB_BIN;
+
   return new Promise((resolve) => {
-    const sbb = spawn(SBB_BIN, args, {
+    const sbb = spawn(sbbPath, args, {
       stdio: 'inherit',
-      cwd: process.cwd()
+      cwd: process.cwd(),
+      shell: isWindows
     });
 
     sbb.on('close', (code) => {
