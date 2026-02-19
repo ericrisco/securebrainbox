@@ -12,7 +12,7 @@ All installation methods require:
 
 ## Quick Install Options
 
-### Option 1: curl (Mac/Linux) ⭐ Recommended
+### Option 1: curl (Linux/macOS) ⭐ Recommended
 
 ```bash
 curl -sSL https://get.securebrainbox.dev | bash
@@ -54,6 +54,65 @@ sbb install
 pip install securebrainbox
 sbb install
 ```
+
+### Option 5: Windows (via WSL) 🪟
+
+SecureBrainBox runs natively on Windows through **WSL (Windows Subsystem for Linux)**. This gives you a full Linux environment — the same one Docker Desktop uses under the hood.
+
+#### Step 1: Install WSL
+
+Open **PowerShell as Administrator** and run:
+
+```powershell
+wsl --install
+```
+
+This installs WSL 2 with Ubuntu by default. **Restart your computer** when prompted.
+
+After restart, Ubuntu will open automatically and ask you to create a username and password.
+
+#### Step 2: Install Docker
+
+You have two options:
+
+**Option A: Docker inside WSL (recommended for simplicity)**
+
+```bash
+# Inside your WSL terminal
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# Log out and back in (close and reopen the terminal)
+newgrp docker
+
+# Verify
+docker run hello-world
+```
+
+**Option B: Docker Desktop with WSL 2 backend**
+
+1. Download [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
+2. During install, ensure **"Use WSL 2 instead of Hyper-V"** is checked
+3. Open Docker Desktop → Settings → Resources → WSL Integration
+4. Enable integration with your Ubuntu distro
+5. Verify in WSL terminal: `docker run hello-world`
+
+#### Step 3: Install SecureBrainBox
+
+Inside your WSL terminal:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.sh | bash
+```
+
+That's it. From here on, everything works exactly like Linux.
+
+#### Tips for Windows users
+
+- **Access WSL files from Windows:** Open File Explorer and go to `\\wsl$\Ubuntu\home\<your-user>`
+- **Open WSL terminal:** Type `wsl` in PowerShell, or search for "Ubuntu" in the Start menu
+- **GPU passthrough:** WSL 2 supports NVIDIA CUDA automatically if you have the latest GPU drivers installed
+- **VS Code:** Install the [WSL extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) to edit files directly inside WSL
 
 ## After Installation
 
@@ -135,9 +194,11 @@ curl -fsSL https://get.docker.com | sh
 
 **Mac:** Open Docker Desktop from Applications
 
-**Linux:**
+**Linux / WSL:**
 ```bash
 sudo systemctl start docker
+# Or if systemd is not available in your WSL:
+sudo service docker start
 ```
 
 ### Command not found: sbb
