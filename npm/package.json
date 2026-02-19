@@ -1,0 +1,38 @@
+{
+  "name": "securebrainbox",
+  "version": "0.1.0",
+  "description": "100% local AI agent for Telegram with vector + graph memory",
+  "bin": {
+    "securebrainbox": "./bin/cli.js",
+    "sbb": "./bin/cli.js"
+  },
+  "keywords": [
+    "ai",
+    "telegram",
+    "bot",
+    "local",
+    "privacy",
+    "ollama",
+    "rag",
+    "vector-database",
+    "knowledge-graph"
+  ],
+  "author": "Eric Risco",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ericrisco/securebrainbox.git"
+  },
+  "homepage": "https://github.com/ericrisco/securebrainbox",
+  "bugs": {
+    "url": "https://github.com/ericrisco/securebrainbox/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "files": [
+    "bin/",
+    "scripts/"
+  ]
+}

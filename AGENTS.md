@@ -19,6 +19,38 @@ SecureBrainBox is a **100% local AI agent** that connects to Telegram and become
 | **Interface** | Telegram Bot (python-telegram-bot) | Convenient, secure, everywhere |
 | **Orchestration** | Docker Compose | One command to run everything |
 
+## Installation Methods
+
+**For end users (pick one):**
+
+```bash
+# Option 1: curl (Mac/Linux)
+curl -sSL https://get.securebrainbox.dev | bash
+
+# Option 2: Homebrew (Mac)
+brew tap ericrisco/tap
+brew install securebrainbox
+
+# Option 3: npx (Node.js users)
+npx securebrainbox install
+
+# Option 4: pip (Python users)
+pip install securebrainbox
+```
+
+Then run the setup wizard:
+```bash
+sbb install
+```
+
+**For development:**
+```bash
+git clone https://github.com/ericrisco/securebrainbox.git
+cd securebrainbox
+cp .env.example .env
+docker-compose up -d
+```
+
 ## Architecture
 
 ```
