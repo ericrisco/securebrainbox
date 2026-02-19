@@ -4,7 +4,8 @@ import click
 from rich.console import Console
 
 from src import __version__
-from src.cli.commands import logs, restart, start, status, stop
+from src.cli.install import install, LOGO
+from src.cli.commands import start, stop, restart, status, logs
 from src.cli.config import config
 from src.cli.install import LOGO, install
 
