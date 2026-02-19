@@ -39,7 +39,7 @@ SecureBrainBox is a **100% local** AI-powered knowledge management system for Te
 - 8GB+ RAM recommended
 - NVIDIA GPU (optional, for faster inference)
 
-### Installation
+### Installation (Linux / macOS)
 
 ```bash
 # Option 1: curl installer
@@ -56,6 +56,29 @@ cp .env.example .env
 # Edit .env with your Telegram bot token
 docker compose up -d
 ```
+
+### Installation (Windows via WSL)
+
+SecureBrainBox runs on Windows through **WSL (Windows Subsystem for Linux)** — the same Linux environment used by Docker Desktop.
+
+```powershell
+# 1. Install WSL (run in PowerShell as Administrator)
+wsl --install
+
+# 2. Restart your computer, then open the Ubuntu terminal
+
+# 3. Inside WSL, install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Log out and back in for group changes to take effect
+
+# 4. Install SecureBrainBox (same as Linux)
+curl -sSL https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.sh | bash
+```
+
+> 💡 **Already have Docker Desktop?** Enable the WSL 2 backend in Docker Desktop settings, then skip step 3.
+
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed Windows instructions.
 
 ### Configuration
 

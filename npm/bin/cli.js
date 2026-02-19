@@ -40,23 +40,14 @@ async function runInstaller() {
   const isWindows = process.platform === 'win32';
 
   if (isWindows) {
-    log('dim', 'Installing via PowerShell script...\n');
-    return new Promise((resolve, reject) => {
-      const installer = spawn('powershell', [
-        '-ExecutionPolicy', 'Bypass',
-        '-Command',
-        'irm https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.ps1 | iex'
-      ], {
-        stdio: 'inherit',
-        shell: true
-      });
-
-      installer.on('close', (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`Installation failed with code ${code}`));
-      });
-      installer.on('error', reject);
-    });
+    log('yellow', '⚠️  SecureBrainBox requires WSL (Windows Subsystem for Linux) on Windows.\n');
+    log('dim', 'To install:');
+    log('dim', '  1. Open PowerShell as Administrator and run: wsl --install');
+    log('dim', '  2. Restart your computer');
+    log('dim', '  3. Open the Ubuntu terminal and run:');
+    log('dim', '     curl -sSL https://raw.githubusercontent.com/ericrisco/securebrainbox/main/scripts/install.sh | bash\n');
+    log('dim', 'See: https://github.com/ericrisco/securebrainbox/blob/main/docs/INSTALLATION.md\n');
+    return Promise.resolve();
   }
 
   log('dim', 'Installing via curl script...\n');
